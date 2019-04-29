@@ -8,3 +8,6 @@ target/
 # IntelliJ Files
 .idea/
 *.iml
+
+# Datasets
+data/
