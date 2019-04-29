@@ -1,2 +1,10 @@
+# Scala files
 *.class
 *.log
+
+# Maven files
+target/
+
+# IntelliJ Files
+.idea/
+*.iml
