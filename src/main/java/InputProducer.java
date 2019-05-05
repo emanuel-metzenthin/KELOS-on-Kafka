@@ -28,9 +28,9 @@ public class InputProducer {
         props.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, InputProducer.SERVER_CONFIGS);
         props.put(ProducerConfig.CLIENT_ID_CONFIG, InputProducer.APP_ID);
         props.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
-        props.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
+        props.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, ArrayListSerializer.class.getName());
 
-        Producer<String, String> producer = new KafkaProducer<>(props);
+        Producer<String, ArrayList<Double>> producer = new KafkaProducer<>(props);
 
         File csvData = new File(InputProducer.CSV_DATA);
 
@@ -38,21 +38,18 @@ public class InputProducer {
             CSVParser parser = CSVParser.parse(csvData, Charset.forName("UTF-8"), CSVFormat.RFC4180);
 
             for (CSVRecord csvRecord : parser) {
-                // TODO Comment out once Serde for ArrayList is implemented
-                // ArrayList<Double> numberRecord = new ArrayList<>();
-                String stringRecord = "";
+                ArrayList<Double> numberRecord = new ArrayList<>();
 
                 for (int i = 0; i < csvRecord.size(); i++){
                     String val = csvRecord.get(i);
 
                     if (NumberUtils.isParsable(val)){
-                        stringRecord += "," + val;
-                        // double number = Double.parseDouble(val);
-                        // numberRecord.add(number);
+                        double number = Double.parseDouble(val);
+                        numberRecord.add(number);
                     }
                 }
 
-                producer.send(new ProducerRecord<>(InputProducer.TOPIC, stringRecord));
+                producer.send(new ProducerRecord<>(InputProducer.TOPIC, numberRecord));
             }
         } catch (IOException e) {
             e.printStackTrace();
