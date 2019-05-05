@@ -20,10 +20,10 @@ public final class ClusterService {
 
     public static void main(final String[] args) {
         final Properties props = new Properties();
-        props.put(StreamsConfig.APPLICATION_ID_CONFIG, this.TOPIC);
-        props.put(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, this.SERVER_CONFIGS);
-        props.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
-        props.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
+        props.put(StreamsConfig.APPLICATION_ID_CONFIG, ClusterService.APP_ID);
+        props.put(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG,ClusterService.SERVER_CONFIGS);
+        props.put(StreamsConfig.DEFAULT_KEY_SERDE_CLASS_CONFIG, Serdes.String().getClass().getName());
+        props.put(StreamsConfig.DEFAULT_VALUE_SERDE_CLASS_CONFIG, Serdes.String().getClass().getName());
 
         final StreamsBuilder builder = new StreamsBuilder();
 

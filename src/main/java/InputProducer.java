@@ -25,14 +25,14 @@ public class InputProducer {
     static void runProducer() {
         Properties props = new Properties();
 
-        props.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, this.SERVER_CONFIGS);
-        props.put(ProducerConfig.CLIENT_ID_CONFIG, this.APP_ID);
+        props.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, InputProducer.SERVER_CONFIGS);
+        props.put(ProducerConfig.CLIENT_ID_CONFIG, InputProducer.APP_ID);
         props.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
         props.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
 
         Producer<String, String> producer = new KafkaProducer<>(props);
 
-        File csvData = new File(this.CSV_DATA);
+        File csvData = new File(InputProducer.CSV_DATA);
 
         try {
             CSVParser parser = CSVParser.parse(csvData, Charset.forName("UTF-8"), CSVFormat.RFC4180);
@@ -52,7 +52,7 @@ public class InputProducer {
                     }
                 }
 
-                producer.send(new ProducerRecord<>(this.TOPIC, stringRecord));
+                producer.send(new ProducerRecord<>(InputProducer.TOPIC, stringRecord));
             }
         } catch (IOException e) {
             e.printStackTrace();
