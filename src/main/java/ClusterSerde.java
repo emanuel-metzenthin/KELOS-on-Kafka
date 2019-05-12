@@ -2,7 +2,6 @@ import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serializer;
 
-import java.util.Cluster;
 import java.util.Map;
 
 public class ClusterSerde implements Serde<Cluster> {
@@ -26,12 +25,12 @@ public class ClusterSerde implements Serde<Cluster> {
     }
 
     @Override
-    public Serializer<Cluster<Double>> serializer() {
+    public Serializer<Cluster> serializer() {
         return serializer;
     }
 
     @Override
-    public Deserializer<Cluster<Double>> deserializer() {
+    public Deserializer<Cluster> deserializer() {
         return deserializer;
     }
 }

@@ -5,6 +5,6 @@ public class Cluster {
     double[] maximums;
 
     public double distance(double[] x) {
-        return 0.0
+        return 0.0;
     }
 }
