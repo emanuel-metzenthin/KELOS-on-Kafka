@@ -1,3 +1,5 @@
+import java.util.ArrayList;
+
 public class Cluster {
     int size;
     double[] centroid;
@@ -5,12 +7,16 @@ public class Cluster {
     double[] minimums;
     double[] maximums;
 
-    public double distance(double[] record) {
+    Cluster(double[] centroid){
+        this.centroid = centroid;
+    }
+
+    public double distance(ArrayList<Double> record) {
 
         double sum_of_squares = 0;
 
-        for(int i = 0; i < record.length; i++){
-            double difference = record[i] - this.centroid[i];
+        for(int i = 0; i < this.centroid.length; i++){
+            double difference = record.get(i) - this.centroid[i];
             sum_of_squares += difference * difference;
         }
 
