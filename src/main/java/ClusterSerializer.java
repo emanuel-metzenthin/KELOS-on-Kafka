@@ -21,6 +21,9 @@ public class ClusterSerializer implements Serializer<Cluster> {
             out.writeInt(cluster.size);
             out.writeInt(cluster.linearSums.length);
 
+            for (double element : cluster.centroid) {
+                out.writeDouble(element);
+            }
             for (double element : cluster.linearSums) {
                 out.writeDouble(element);
             }

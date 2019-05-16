@@ -22,10 +22,15 @@ public class ClusterDeserializer implements Deserializer<Cluster> {
             c.size = in.readInt();
             int dimensions = in.readInt();
 
+            c.centroid = new double[dimensions];
             c.linearSums = new double[dimensions];
             c.minimums = new double[dimensions];
             c.maximums = new double[dimensions];
 
+            for(int i = 0; i < dimensions; i++){
+                double element = in.readDouble();
+                c.centroid[i] = element;
+            }
             for(int i = 0; i < dimensions; i++){
                 double element = in.readDouble();
                 c.linearSums[i] = element;
