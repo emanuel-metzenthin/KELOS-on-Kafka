@@ -17,11 +17,13 @@ public class Cluster {
         this.maximums = new double[column_count];
     }
 
-    Cluster(double[] record){
-        this.centroid = record;
-        this.linearSums = record;
-        this.minimums = record;
-        this.maximums = record;
+    Cluster(ArrayList<Double> record){
+        double[] recordArray = record.stream().mapToDouble(Double::doubleValue).toArray();
+
+        this.centroid = recordArray;
+        this.linearSums = recordArray;
+        this.minimums = recordArray;
+        this.maximums = recordArray;
         this.size = 1;
     }
 

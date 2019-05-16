@@ -100,8 +100,8 @@ public final class ClusterProcessorService {
                     // Clear all meta data in cluster store, but keep centroids for distance computation
                     for(KeyValueIterator<Integer, Cluster> i = clusters.all(); i.hasNext();) {
                         KeyValue<Integer, Cluster> cluster = i.next();
-                        Cluster emptyCluster = new Cluster(cluster.centroid.length);
-                        emptyCluster.centroid = cluster.centroid;
+                        Cluster emptyCluster = new Cluster(cluster.value.centroid.length);
+                        emptyCluster.centroid = cluster.value.centroid;
                         this.tempClusters.put(cluster.key, emptyCluster);
                     }
 
@@ -125,7 +125,7 @@ public final class ClusterProcessorService {
                     int numCluster = 0;
 
                     for(KeyValueIterator<Integer, Cluster> i = this.tempClusters.all(); i.hasNext();) {
-                        KeyValue<Integer, Cluster> c = clusters.next();
+                        KeyValue<Integer, Cluster> c = i.next();
 
                         double dist = c.value.distance(value);
 
