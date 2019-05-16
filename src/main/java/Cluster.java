@@ -1,5 +1,7 @@
 import java.util.ArrayList;
 
+import static java.lang.Math.min;
+
 public class Cluster {
     int size;
     double[] centroid;
@@ -41,7 +43,19 @@ public class Cluster {
         for(int i = 0; i < this.linearSums.length; i++){
             this.linearSums[i] += record.get(i);
             this.centroid[i] = this.linearSums[i] / this.size;
-            // Do not update minimums and maximums because they are not needed at this stage
+            this.minimums[i] = Math.min(this.minimums[i], record.get(i));
+            this.maximums[i] = Math.max(this.maximums[i], record.get(i));
+        }
+    }
+
+    public void merge(Cluster otherCluster){
+        this.size += otherCluster.size;
+        
+        for(int i = 0; i < this.linearSums.length; i++){
+            this.linearSums[i] += otherCluster.linearSums[i];
+            this.centroid[i] = this.linearSums[i] / this.size;
+            this.minimums[i] = Math.min(this.minimums[i], otherCluster.minimums[i]);
+            this.maximums[i] = Math.max(this.maximums[i], otherCluster.maximums[i]);
         }
     }
 }
