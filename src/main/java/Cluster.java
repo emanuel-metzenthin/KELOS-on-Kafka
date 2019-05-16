@@ -7,8 +7,20 @@ public class Cluster {
     double[] minimums;
     double[] maximums;
 
-    Cluster(double[] centroid){
-        this.centroid = centroid;
+    Cluster(int column_count){
+        this.size = 0;
+        this.centroid = new double[column_count];
+        this.linearSums = new double[column_count];
+        this.minimums = new double[column_count];
+        this.maximums = new double[column_count];
+    }
+
+    Cluster(double[] record){
+        this.centroid = record;
+        this.linearSums = record;
+        this.minimums = record;
+        this.maximums = record;
+        this.size = 1;
     }
 
     public double distance(ArrayList<Double> record) {
