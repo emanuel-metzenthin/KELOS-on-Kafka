@@ -37,19 +37,9 @@ import java.util.Locale;
 import java.util.Properties;
 import java.util.concurrent.CountDownLatch;
 
-/**
- * Demonstrates, using the low-level Processor APIs, how to implement the WordCount program
- * that computes a simple word occurrence histogram from an input text.
- * <p>
- * In this example, the input stream reads from a topic named "streams-plaintext-input", where the values of messages
- * represent lines of text; and the histogram output is written to topic "streams-wordcount-processor-output" where each record
- * is an updated count of a single word.
- * <p>
- * Before running this example you must create the input topic and the output topic (e.g. via
- * {@code bin/kafka-topics.sh --create ...}), and write some data to the input topic (e.g. via
- * {@code bin/kafka-console-producer.sh}). Otherwise you won't see any data arriving in the output topic.
- */
 public final class ClusterProcessorService {
+
+    static final double DISTANCE_THRESHOLD = 20;
 
     static class ClusterRegistrationProcessorSupplier implements ProcessorSupplier<String, ArrayList<Double>> {
 
@@ -93,36 +83,67 @@ public final class ClusterProcessorService {
         }
     }
 
-    static class CrossJoinProcessorSupplier implements ProcessorSupplier<String, ArrayList<Double>> {
+    static class ClusteringProcessorSupplier implements ProcessorSupplier<String, ArrayList<Double>> {
 
         @Override
         public Processor<String, ArrayList<Double>> get() {
             return new Processor<String, ArrayList<Double>>() {
                 private ProcessorContext context;
-                private KeyValueStore<Integer, Cluster> state;
+                private KeyValueStore<Integer, Cluster> tempClusters;
 
                 @Override
                 public void init(ProcessorContext context) {
                     this.context = context;
-                    this.state = (KeyValueStore<Integer, Cluster>) context.getStateStore("Clusters");
+                    this.tempClusters = (KeyValueStore<Integer, Cluster>) context.getStateStore("TempClusters");
+                    KeyValueStore<Integer, Cluster> clusters = (KeyValueStore<Integer, Cluster>) context.getStateStore("Clusters");
+
+                    // Clear all meta data in cluster store, but keep centroids for distance computation
+                    for(KeyValueIterator<Integer, Cluster> i = clusters.all(); i.hasNext();) {
+                        KeyValue<Integer, Cluster> cluster = i.next();
+                        Cluster emptyCluster = new Cluster(cluster.centroid.length);
+                        emptyCluster.centroid = cluster.centroid;
+                        this.tempClusters.put(cluster.key, emptyCluster);
+                    }
+
+                    // Emit cluster meta data after sub-window has been processed
+                    this.context.schedule(1000, PunctuationType.STREAM_TIME, (timestamp) -> {
+                        for(KeyValueIterator<Integer, Cluster> i = this.tempClusters.all(); i.hasNext();) {
+                            KeyValue<Integer, Cluster> cluster = i.next();
+                            context.forward(cluster.key, cluster.value);
+                        }
+
+                        // commit the current processing progress
+                        context.commit();
+                    });
                 }
 
                 @Override
                 public void process(String key, ArrayList<Double> value) {
-                    // can access this.state
-                    // can emit as many new KeyValue pairs as required via this.context#forward()
+                    double minDist = Double.MAX_VALUE;
+                    Cluster cluster = null;
+                    int clusterIdx = 0;
+                    int numCluster = 0;
 
-                    context.forward(key, value);
-
-                    KeyValueIterator<Integer, Cluster> clusters = this.state.all();
-
-                    while(clusters.hasNext()){
+                    for(KeyValueIterator<Integer, Cluster> i = this.tempClusters.all(); i.hasNext();) {
                         KeyValue<Integer, Cluster> c = clusters.next();
-                        System.out.println("Cluster index =  " + c.key);
-                        context.forward(c.key, c.value);
+
+                        double dist = c.value.distance(value);
+
+                        if (dist < minDist) {
+                            minDist = dist;
+                            cluster = c.value;
+                            clusterIdx = c.key;
+                        }
+
+                        numCluster++;
                     }
 
-                    clusters.close();
+                    if (minDist < ClusterProcessorService.DISTANCE_THRESHOLD) {
+                        cluster.addRecord(value);
+                        this.tempClusters.put(clusterIdx, cluster);
+                    } else {
+                        this.tempClusters.put(numCluster + 1, new Cluster(value));
+                    }
                 }
 
                 @Override
@@ -165,9 +186,21 @@ public final class ClusterProcessorService {
                 ClusterProcessorService.TOPIC,
                 "ClusterRegistration",
                 new ClusterRegistrationProcessorSupplier());
-        builder.addProcessor("CrossJoin", new CrossJoinProcessorSupplier(), "Source");
+
+        builder.addStateStore(
+                Stores.keyValueStoreBuilder(
+                        Stores.inMemoryKeyValueStore("TempClusters"),
+                        Serdes.Integer(),
+                        new ClusterSerde()),
+                "ClusteringProcessor");
+
+        builder.addProcessor("ClusteringProcessor", new ClusteringProcessorSupplier(), "Source");
 
         builder.addSink("Sink", ClusterProcessorService.TOPIC, "Source");
+
+
+
+        // ==== SHUTDOWN ====
 
         final KafkaStreams streams = new KafkaStreams(builder, props);
         final CountDownLatch latch = new CountDownLatch(1);
