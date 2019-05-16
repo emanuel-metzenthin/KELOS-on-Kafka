@@ -23,11 +23,11 @@ public class Cluster {
         return Math.sqrt(sum_of_squares);
     }
 
-    public void addRecord(double[] record){
+    public void addRecord(ArrayList<Double> record){
         this.size += 1;
 
-        for(int i = 0; i < record.length; i++){
-            this.linearSums[i] += record[i];
+        for(int i = 0; i < this.linearSums.length; i++){
+            this.linearSums[i] += record.get(i);
             this.centroid[i] = this.linearSums[i] / this.size;
             // Do not update minimums and maximums because they are not needed at this stage
         }
