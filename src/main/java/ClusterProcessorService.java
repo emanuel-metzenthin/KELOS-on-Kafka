@@ -1,5 +1,6 @@
+import org.apache.kafka.common.serialization.IntegerDeserializer;
+import org.apache.kafka.common.serialization.IntegerSerializer;
 import org.apache.kafka.common.serialization.Serdes;
-import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.KeyValue;
 import org.apache.kafka.streams.StreamsConfig;
@@ -12,6 +13,7 @@ import org.apache.kafka.streams.state.KeyValueIterator;
 import org.apache.kafka.streams.state.KeyValueStore;
 import org.apache.kafka.streams.state.Stores;
 
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Properties;
 import java.util.concurrent.CountDownLatch;
@@ -20,11 +22,11 @@ public final class ClusterProcessorService {
 
     static final double DISTANCE_THRESHOLD = 20;
 
-    static class ClusterRegistrationProcessorSupplier implements ProcessorSupplier<String, ArrayList<Double>> {
+    static class ClusterRegistrationProcessorSupplier implements ProcessorSupplier<Integer, Cluster> {
 
         @Override
-        public Processor<String, ArrayList<Double>> get() {
-            return new Processor<String, ArrayList<Double>>() {
+        public Processor<Integer, Cluster> get() {
+            return new Processor<Integer, Cluster>() {
                 private KeyValueStore<Integer, Cluster> state;
 
                 @Override
@@ -33,7 +35,7 @@ public final class ClusterProcessorService {
                 }
 
                 @Override
-                public void process(String key, ArrayList<Double> value) {
+                public void process(Integer key, Cluster value) {
                     // can access this.state
                     // can emit as many new KeyValue pairs as required via this.context#forward()
 
@@ -81,11 +83,13 @@ public final class ClusterProcessorService {
                         KeyValue<Integer, Cluster> cluster = i.next();
                         Cluster emptyCluster = new Cluster(cluster.value.centroid.length);
                         emptyCluster.centroid = cluster.value.centroid;
+
+                        // TODO: Can't call put like this in init. Perhaps needs custom timestamp?
                         this.tempClusters.put(cluster.key, emptyCluster);
                     }
 
                     // Emit cluster meta data after sub-window has been processed
-                    this.context.schedule(1000, PunctuationType.STREAM_TIME, (timestamp) -> {
+                    this.context.schedule(Duration.ofSeconds(1), PunctuationType.STREAM_TIME, (timestamp) -> {
                         for(KeyValueIterator<Integer, Cluster> i = this.tempClusters.all(); i.hasNext();) {
                             KeyValue<Integer, Cluster> cluster = i.next();
                             context.forward(cluster.key, cluster.value);
@@ -160,11 +164,13 @@ public final class ClusterProcessorService {
                     new ClusterSerde()
                 ).withLoggingDisabled(),
                 "GlobalSource",
-                new StringDeserializer(),
-                new ArrayListDeserializer(),
+                new IntegerDeserializer(),
+                new ClusterDeserializer(),
                 ClusterProcessorService.TOPIC,
                 "ClusterRegistration",
                 new ClusterRegistrationProcessorSupplier());
+
+        builder.addProcessor("ClusteringProcessor", new ClusteringProcessorSupplier(), "Source");
 
         builder.addStateStore(
                 Stores.keyValueStoreBuilder(
@@ -173,9 +179,7 @@ public final class ClusterProcessorService {
                         new ClusterSerde()),
                 "ClusteringProcessor");
 
-        builder.addProcessor("ClusteringProcessor", new ClusteringProcessorSupplier(), "Source");
-
-        builder.addSink("Sink", ClusterProcessorService.TOPIC, "Source");
+        builder.addSink("Sink", ClusterProcessorService.TOPIC, new IntegerSerializer(), new ClusterSerializer(), "ClusteringProcessor");
 
 
 
