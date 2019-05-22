@@ -1,24 +1,6 @@
-/*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements. See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
- *
- *    http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
-import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.serialization.IntegerDeserializer;
+import org.apache.kafka.common.serialization.IntegerSerializer;
 import org.apache.kafka.common.serialization.Serdes;
-import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.KeyValue;
 import org.apache.kafka.streams.StreamsConfig;
@@ -33,23 +15,22 @@ import org.apache.kafka.streams.state.Stores;
 
 import java.time.Duration;
 import java.util.ArrayList;
-import java.util.Locale;
 import java.util.Properties;
 import java.util.concurrent.CountDownLatch;
 
 public final class ClusterProcessorService {
 
     static final double DISTANCE_THRESHOLD = 20;
-    static final int WINDOW_TIME = 1000;
+    static final Duration WINDOW_TIME = Duration.ofSeconds(1);
     static String TOPIC = "clusters";
     static String APP_ID = "cluster-service";
     static String SERVER_CONFIGS = "localhost:9092";
 
-    static class ClusterRegistrationProcessorSupplier implements ProcessorSupplier<String, ArrayList<Double>> {
+    static class ClusterRegistrationProcessorSupplier implements ProcessorSupplier<Integer, Cluster> {
 
         @Override
-        public Processor<String, ArrayList<Double>> get() {
-            return new Processor<String, Cluster>() {
+        public Processor<Integer, Cluster> get() {
+            return new Processor<Integer, Cluster>() {
                 private ProcessorContext context;
                 private KeyValueStore<Integer, Cluster> state;
 
@@ -71,11 +52,11 @@ public final class ClusterProcessorService {
                 }
 
                 @Override
-                public void process(String key, Cluster value) {
+                public void process(Integer key, Cluster value) {
                     KeyValueIterator<Integer, Cluster> clusters = this.state.all();
 
                     if(!clusters.hasNext()){
-                        Cluster dummy = new Cluster();
+                        Cluster dummy = new Cluster(2);
                         dummy.size = 1;
                         dummy.linearSums = new double[]{3, 4};
                         dummy.minimums = new double[]{3, 4};
@@ -99,7 +80,6 @@ public final class ClusterProcessorService {
             Clusters data points in sub-windows and emits cluster meta-data for the ClusterRegistrationProcessor
             to aggregate them into the global store.
          */
-
         @Override
         public Processor<String, ArrayList<Double>> get() {
             return new Processor<String, ArrayList<Double>>() {
@@ -117,12 +97,14 @@ public final class ClusterProcessorService {
                         KeyValue<Integer, Cluster> cluster = i.next();
                         Cluster emptyCluster = new Cluster(cluster.value.centroid.length);
                         emptyCluster.centroid = cluster.value.centroid;
+
+                        // TODO: Can't call put like this in init. Perhaps needs custom timestamp?
                         this.tempClusters.put(cluster.key, emptyCluster);
                     }
 
                     // TODO: Clear tempClusters store?
                     // Emit cluster meta data after sub-window has been processed
-                    this.context.schedule(WINDOW_TIME, PunctuationType.STREAM_TIME, (timestamp) -> {
+                    this.context.schedule(Duration.ofSeconds(1), PunctuationType.STREAM_TIME, (timestamp) -> {
                         for(KeyValueIterator<Integer, Cluster> i = this.tempClusters.all(); i.hasNext();) {
                             KeyValue<Integer, Cluster> cluster = i.next();
                             context.forward(cluster.key, cluster.value);
@@ -193,13 +175,14 @@ public final class ClusterProcessorService {
                     new ClusterSerde()
                 ).withLoggingDisabled(),
                 "GlobalSource",
-                new StringDeserializer(),
+                new IntegerDeserializer(),
                 new ClusterDeserializer(),
                 ClusterProcessorService.TOPIC,
                 "ClusterRegistration",
                 new ClusterRegistrationProcessorSupplier());
 
-        // Add local store for temporary cluster states
+        builder.addProcessor("ClusteringProcessor", new ClusteringProcessorSupplier(), "Source");
+
         builder.addStateStore(
                 Stores.keyValueStoreBuilder(
                         Stores.inMemoryKeyValueStore("TempClusters"),
@@ -207,9 +190,7 @@ public final class ClusterProcessorService {
                         new ClusterSerde()),
                 "ClusteringProcessor");
 
-        builder.addProcessor("ClusteringProcessor", new ClusteringProcessorSupplier(), "Source");
-
-        builder.addProcessor("ClusterRegistration", ClusterRegistrationProcessorSupplier.TOPIC, "ClusteringProcessor");
+        builder.addSink("Sink", ClusterProcessorService.TOPIC, new IntegerSerializer(), new ClusterSerializer(), "ClusteringProcessor");
 
 
 

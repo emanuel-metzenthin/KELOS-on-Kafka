@@ -16,11 +16,12 @@ public class ClusterDeserializer implements Deserializer<Cluster> {
 
         ByteArrayInputStream bais = new ByteArrayInputStream(bytes);
         DataInputStream in = new DataInputStream(bais);
-        Cluster c = new Cluster();
 
         try{
-            c.size = in.readInt();
             int dimensions = in.readInt();
+            Cluster c = new Cluster(dimensions);
+            c.size = in.readInt();
+
 
             c.centroid = new double[dimensions];
             c.linearSums = new double[dimensions];
@@ -43,11 +44,13 @@ public class ClusterDeserializer implements Deserializer<Cluster> {
                 double element = in.readDouble();
                 c.maximums[i] = element;
             }
+
+            return c;
         } catch (IOException e){
             e.printStackTrace();
         }
 
-        return c;
+        return null;
     }
 
     @Override

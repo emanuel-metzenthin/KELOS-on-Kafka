@@ -1,7 +1,5 @@
 import java.util.ArrayList;
 
-import static java.lang.Math.min;
-
 public class Cluster {
     int size;
     double[] centroid;

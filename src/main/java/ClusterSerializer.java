@@ -18,8 +18,8 @@ public class ClusterSerializer implements Serializer<Cluster> {
         DataOutputStream out = new DataOutputStream(baos);
 
         try {
-            out.writeInt(cluster.size);
             out.writeInt(cluster.linearSums.length);
+            out.writeInt(cluster.size);
 
             for (double element : cluster.centroid) {
                 out.writeDouble(element);
