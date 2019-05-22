@@ -40,26 +40,39 @@ import java.util.concurrent.CountDownLatch;
 public final class ClusterProcessorService {
 
     static final double DISTANCE_THRESHOLD = 20;
+    static final int WINDOW_TIME = 1000;
+    static String TOPIC = "clusters";
+    static String APP_ID = "cluster-service";
+    static String SERVER_CONFIGS = "localhost:9092";
 
     static class ClusterRegistrationProcessorSupplier implements ProcessorSupplier<String, ArrayList<Double>> {
 
         @Override
         public Processor<String, ArrayList<Double>> get() {
-            return new Processor<String, ArrayList<Double>>() {
+            return new Processor<String, Cluster>() {
+                private ProcessorContext context;
                 private KeyValueStore<Integer, Cluster> state;
 
                 @Override
                 public void init(ProcessorContext context) {
+                    this.context = context;
                     this.state = (KeyValueStore<Integer, Cluster>) context.getStateStore("Clusters");
+
+                    // TODO Add temp store for merging clusters
+                    // Sum cluster data of sub-windows and write into global store
+                    this.context.schedule(WINDOW_TIME, PunctuationType.STREAM_TIME, (timestamp) -> {
+                        for(KeyValueIterator<Integer, Cluster> i = this.tempClusters.all(); i.hasNext();) {
+                            KeyValue<Integer, Cluster> cluster = i.next();
+                            context.forward(cluster.key, cluster.value);
+                        }
+
+                        context.commit();
+                    });
                 }
 
                 @Override
-                public void process(String key, ArrayList<Double> value) {
-                    // can access this.state
-                    // can emit as many new KeyValue pairs as required via this.context#forward()
-
+                public void process(String key, Cluster value) {
                     KeyValueIterator<Integer, Cluster> clusters = this.state.all();
-
 
                     if(!clusters.hasNext()){
                         Cluster dummy = new Cluster();
@@ -75,15 +88,17 @@ public final class ClusterProcessorService {
                 }
 
                 @Override
-                public void close() {
-                    // can access this.state
-                    // can emit as many new KeyValue pairs as required via this.context#forward()
-                }
+                public void close() { }
             };
         }
     }
 
     static class ClusteringProcessorSupplier implements ProcessorSupplier<String, ArrayList<Double>> {
+
+        /*
+            Clusters data points in sub-windows and emits cluster meta-data for the ClusterRegistrationProcessor
+            to aggregate them into the global store.
+         */
 
         @Override
         public Processor<String, ArrayList<Double>> get() {
@@ -105,24 +120,30 @@ public final class ClusterProcessorService {
                         this.tempClusters.put(cluster.key, emptyCluster);
                     }
 
+                    // TODO: Clear tempClusters store?
                     // Emit cluster meta data after sub-window has been processed
-                    this.context.schedule(1000, PunctuationType.STREAM_TIME, (timestamp) -> {
+                    this.context.schedule(WINDOW_TIME, PunctuationType.STREAM_TIME, (timestamp) -> {
                         for(KeyValueIterator<Integer, Cluster> i = this.tempClusters.all(); i.hasNext();) {
                             KeyValue<Integer, Cluster> cluster = i.next();
                             context.forward(cluster.key, cluster.value);
                         }
 
-                        // commit the current processing progress
                         context.commit();
                     });
                 }
 
+                /*
+                    Clusters data points by computing distances to cluster centroids
+                    and adding the points to the nearest cluster or by creating
+                    new clusters for distances above the threshold.
+                */
                 @Override
                 public void process(String key, ArrayList<Double> value) {
+
                     double minDist = Double.MAX_VALUE;
                     Cluster cluster = null;
                     int clusterIdx = 0;
-                    int numCluster = 0;
+                    int numCluster = 0; // Highest cluster index, needed to create new clusters
 
                     for(KeyValueIterator<Integer, Cluster> i = this.tempClusters.all(); i.hasNext();) {
                         KeyValue<Integer, Cluster> c = i.next();
@@ -147,17 +168,10 @@ public final class ClusterProcessorService {
                 }
 
                 @Override
-                public void close() {
-                    // can access this.state
-                    // can emit as many new KeyValue pairs as required via this.context#forward()
-                }
+                public void close() { }
             };
         }
     }
-
-    static String TOPIC = "clusters";
-    static String APP_ID = "cluster-service";
-    static String SERVER_CONFIGS = "localhost:9092";
 
     public static void main(final String[] args) {
         final Properties props = new Properties();
@@ -167,13 +181,11 @@ public final class ClusterProcessorService {
         props.put(StreamsConfig.DEFAULT_KEY_SERDE_CLASS_CONFIG, Serdes.String().getClass());
         props.put(StreamsConfig.DEFAULT_VALUE_SERDE_CLASS_CONFIG, ArrayListSerde.class.getName());
 
-        // setting offset reset to earliest so that we can re-run the demo code with the same pre-loaded data
-        // props.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
-
         final Topology builder = new Topology();
 
         builder.addSource("Source", InputProducer.TOPIC);
 
+        // Add global cluster store
         builder.addGlobalStore(
                 Stores.keyValueStoreBuilder(
                     Stores.inMemoryKeyValueStore("Clusters"),
@@ -182,11 +194,12 @@ public final class ClusterProcessorService {
                 ).withLoggingDisabled(),
                 "GlobalSource",
                 new StringDeserializer(),
-                new ArrayListDeserializer(),
+                new ClusterDeserializer(),
                 ClusterProcessorService.TOPIC,
                 "ClusterRegistration",
                 new ClusterRegistrationProcessorSupplier());
 
+        // Add local store for temporary cluster states
         builder.addStateStore(
                 Stores.keyValueStoreBuilder(
                         Stores.inMemoryKeyValueStore("TempClusters"),
@@ -196,7 +209,7 @@ public final class ClusterProcessorService {
 
         builder.addProcessor("ClusteringProcessor", new ClusteringProcessorSupplier(), "Source");
 
-        builder.addSink("Sink", ClusterProcessorService.TOPIC, "Source");
+        builder.addProcessor("ClusterRegistration", ClusterRegistrationProcessorSupplier.TOPIC, "ClusteringProcessor");
 
 
 
