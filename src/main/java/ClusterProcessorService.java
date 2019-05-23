@@ -20,7 +20,7 @@ import java.util.concurrent.CountDownLatch;
 
 public final class ClusterProcessorService {
 
-    static final double DISTANCE_THRESHOLD = 20;
+    static final double DISTANCE_THRESHOLD = 200;
     static final Duration WINDOW_TIME = Duration.ofSeconds(1);
     static String TOPIC = "clusters";
     static String APP_ID = "cluster-service";
@@ -31,41 +31,16 @@ public final class ClusterProcessorService {
         @Override
         public Processor<Integer, Cluster> get() {
             return new Processor<Integer, Cluster>() {
-                private ProcessorContext context;
                 private KeyValueStore<Integer, Cluster> state;
 
                 @Override
                 public void init(ProcessorContext context) {
-                    this.context = context;
                     this.state = (KeyValueStore<Integer, Cluster>) context.getStateStore("Clusters");
-
-                    // TODO Add temp store for merging clusters
-                    // Sum cluster data of sub-windows and write into global store
-                    this.context.schedule(WINDOW_TIME, PunctuationType.STREAM_TIME, (timestamp) -> {
-                        for(KeyValueIterator<Integer, Cluster> i = this.tempClusters.all(); i.hasNext();) {
-                            KeyValue<Integer, Cluster> cluster = i.next();
-                            context.forward(cluster.key, cluster.value);
-                        }
-
-                        context.commit();
-                    });
                 }
 
                 @Override
                 public void process(Integer key, Cluster value) {
-                    KeyValueIterator<Integer, Cluster> clusters = this.state.all();
-
-                    if(!clusters.hasNext()){
-                        Cluster dummy = new Cluster(2);
-                        dummy.size = 1;
-                        dummy.linearSums = new double[]{3, 4};
-                        dummy.minimums = new double[]{3, 4};
-                        dummy.maximums = new double[]{3, 4};
-
-                        this.state.put(3, dummy);
-                    }
-
-                    clusters.close();
+                    this.state.put(key, value);
                 }
 
                 @Override
@@ -92,25 +67,25 @@ public final class ClusterProcessorService {
                     this.tempClusters = (KeyValueStore<Integer, Cluster>) context.getStateStore("TempClusters");
                     KeyValueStore<Integer, Cluster> clusters = (KeyValueStore<Integer, Cluster>) context.getStateStore("Clusters");
 
-                    // Clear all meta data in cluster store, but keep centroids for distance computation
-                    for(KeyValueIterator<Integer, Cluster> i = clusters.all(); i.hasNext();) {
-                        KeyValue<Integer, Cluster> cluster = i.next();
-                        Cluster emptyCluster = new Cluster(cluster.value.centroid.length);
-                        emptyCluster.centroid = cluster.value.centroid;
-
-                        // TODO: Can't call put like this in init. Perhaps needs custom timestamp?
-                        this.tempClusters.put(cluster.key, emptyCluster);
-                    }
-
-                    // TODO: Clear tempClusters store?
                     // Emit cluster meta data after sub-window has been processed
-                    this.context.schedule(Duration.ofSeconds(1), PunctuationType.STREAM_TIME, (timestamp) -> {
+                    this.context.schedule(ClusterProcessorService.WINDOW_TIME, PunctuationType.STREAM_TIME, timestamp -> {
                         for(KeyValueIterator<Integer, Cluster> i = this.tempClusters.all(); i.hasNext();) {
                             KeyValue<Integer, Cluster> cluster = i.next();
                             context.forward(cluster.key, cluster.value);
                         }
 
                         context.commit();
+
+
+
+                        // Clear all meta data in cluster store, but keep centroids for distance computation
+                        for(KeyValueIterator<Integer, Cluster> i = clusters.all(); i.hasNext();) {
+                            KeyValue<Integer, Cluster> cluster = i.next();
+                            Cluster emptyCluster = new Cluster(cluster.value.centroid.length);
+                            emptyCluster.centroid = cluster.value.centroid;
+
+                            this.tempClusters.put(cluster.key, emptyCluster);
+                        }
                     });
                 }
 
