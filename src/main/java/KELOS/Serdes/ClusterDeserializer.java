@@ -15,7 +15,7 @@ public class ClusterDeserializer implements Deserializer<Cluster> {
     }
 
     @Override
-    public Cluster deserialize(String s, byte[] bytes) {
+    public Cluster deserialize(String topic, byte[] bytes) {
 
         ByteArrayInputStream bais = new ByteArrayInputStream(bytes);
         DataInputStream in = new DataInputStream(bais);

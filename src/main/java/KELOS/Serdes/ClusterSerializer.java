@@ -15,7 +15,7 @@ public class ClusterSerializer implements Serializer<Cluster> {
     }
 
     @Override
-    public byte[] serialize(String s, Cluster cluster) {
+    public byte[] serialize(String topic, Cluster cluster) {
 
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         DataOutputStream out = new DataOutputStream(baos);

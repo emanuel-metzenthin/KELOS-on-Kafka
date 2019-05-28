@@ -1,7 +1,6 @@
 package KELOS;
 
-import KELOS.Serdes.ClusterDeserializer;
-import KELOS.Serdes.ClusterSerializer;
+import KELOS.Serdes.*;
 import org.apache.kafka.common.serialization.IntegerDeserializer;
 import org.apache.kafka.common.serialization.IntegerSerializer;
 import org.apache.kafka.common.serialization.Serdes;
@@ -21,8 +20,6 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Properties;
 import java.util.concurrent.CountDownLatch;
-import KELOS.Serdes.ArrayListSerde;
-import KELOS.Serdes.ClusterSerde;
 
 public final class ClusterProcessorService {
 
@@ -160,7 +157,7 @@ public final class ClusterProcessorService {
 
                     ArrayList<Cluster> oldList = this.clusterList.get(key);
 
-                    if (oldList == null) {
+                    if (oldList == null || oldList.get(0) == null) {
                         ArrayList<Cluster> newList = new ArrayList<>();
                         newList.add(value);
 
