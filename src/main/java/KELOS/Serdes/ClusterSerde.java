@@ -1,8 +1,12 @@
+package KELOS.Serdes;
+
+import KELOS.Cluster;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serializer;
 
 import java.util.Map;
+
 
 public class ClusterSerde implements Serde<Cluster> {
 

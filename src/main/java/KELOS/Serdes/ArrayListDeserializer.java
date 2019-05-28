@@ -1,3 +1,5 @@
+package KELOS.Serdes;
+
 import org.apache.kafka.common.serialization.Deserializer;
 
 import java.io.ByteArrayInputStream;

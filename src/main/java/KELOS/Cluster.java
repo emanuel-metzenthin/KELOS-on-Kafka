@@ -1,13 +1,15 @@
+package KELOS;
+
 import java.util.ArrayList;
 
 public class Cluster {
-    int size;
-    double[] centroid;
-    double[] linearSums;
-    double[] minimums;
-    double[] maximums;
+    public int size;
+    public double[] centroid;
+    public double[] linearSums;
+    public double[] minimums;
+    public double[] maximums;
 
-    Cluster(int column_count){
+    public Cluster(int column_count){
         this.size = 0;
         this.centroid = new double[column_count];
         this.linearSums = new double[column_count];
@@ -15,7 +17,7 @@ public class Cluster {
         this.maximums = new double[column_count];
     }
 
-    Cluster(ArrayList<Double> record){
+    public Cluster(ArrayList<Double> record){
         double[] recordArray = record.stream().mapToDouble(Double::doubleValue).toArray();
 
         this.centroid = recordArray;

@@ -1,3 +1,6 @@
+package KELOS.Serdes;
+
+import KELOS.Cluster;
 import org.apache.kafka.common.serialization.Serializer;
 
 import java.io.ByteArrayOutputStream;

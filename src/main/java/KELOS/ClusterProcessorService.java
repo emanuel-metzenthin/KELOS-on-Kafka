@@ -1,3 +1,7 @@
+package KELOS;
+
+import KELOS.Serdes.ClusterDeserializer;
+import KELOS.Serdes.ClusterSerializer;
 import org.apache.kafka.common.serialization.IntegerDeserializer;
 import org.apache.kafka.common.serialization.IntegerSerializer;
 import org.apache.kafka.common.serialization.Serdes;
@@ -17,9 +21,12 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Properties;
 import java.util.concurrent.CountDownLatch;
+import KELOS.Serdes.ArrayListSerde;
+import KELOS.Serdes.ClusterSerde;
 
 public final class ClusterProcessorService {
 
+    static final int AGGREGATION_WINDOWS = 3;
     static final double DISTANCE_THRESHOLD = 200;
     static final Duration WINDOW_TIME = Duration.ofSeconds(1);
     static String TOPIC = "clusters";
@@ -130,6 +137,59 @@ public final class ClusterProcessorService {
         }
     }
 
+    static class AggregationProcessorSupplier implements ProcessorSupplier<Integer, Cluster> {
+
+        /*
+            Aggregates the sub-windows and emits the aggregated clusters
+         */
+        @Override
+        public Processor<Integer, Cluster> get() {
+            return new Processor<Integer, Cluster>() {
+                private ProcessorContext context;
+                private KeyValueStore<Integer, ArrayList<Cluster>> clusterList;
+
+                @Override
+                public void init(ProcessorContext context) {
+                    this.context = context;
+                    this.clusterList = (KeyValueStore<Integer, ArrayList<Cluster>>) context.getStateStore("ClusterLists");
+                }
+
+
+                @Override
+                public void process(Integer key, Cluster value) {
+
+                    ArrayList<Cluster> oldList = this.clusterList.get(key);
+
+                    if (oldList == null) {
+                        ArrayList<Cluster> newList = new ArrayList<>();
+                        newList.add(value);
+
+                        this.clusterList.put(key, newList);
+                    } else {
+                        ArrayList<Cluster> newList = oldList;
+                        if (oldList.size() > ClusterProcessorService.AGGREGATION_WINDOWS){
+                            newList.remove(0);
+                        }
+
+                        Cluster aggregate = value;
+
+                        for (Cluster c : newList){
+                            aggregate.merge(c);
+                        }
+
+                        newList.add(value);
+
+                        this.context.forward(key, aggregate);
+                        this.clusterList.put(key, newList);
+                    }
+                }
+
+                @Override
+                public void close() { }
+            };
+        }
+    }
+
     public static void main(final String[] args) {
         final Properties props = new Properties();
         props.put(StreamsConfig.APPLICATION_ID_CONFIG, ClusterProcessorService.APP_ID);
@@ -157,6 +217,7 @@ public final class ClusterProcessorService {
                 new ClusterRegistrationProcessorSupplier());
 
         builder.addProcessor("ClusteringProcessor", new ClusteringProcessorSupplier(), "Source");
+        builder.addProcessor("AggregationProcessor", new AggregationProcessorSupplier(), "ClusteringProcessor");
 
         builder.addStateStore(
                 Stores.keyValueStoreBuilder(
@@ -165,7 +226,14 @@ public final class ClusterProcessorService {
                         new ClusterSerde()),
                 "ClusteringProcessor");
 
-        builder.addSink("Sink", ClusterProcessorService.TOPIC, new IntegerSerializer(), new ClusterSerializer(), "ClusteringProcessor");
+        builder.addStateStore(
+                Stores.keyValueStoreBuilder(
+                        Stores.inMemoryKeyValueStore("ClusterLists"),
+                        Serdes.Integer(),
+                        new ClusterListSerde()),
+                "AggregationProcessor");
+
+        builder.addSink("Sink", ClusterProcessorService.TOPIC, new IntegerSerializer(), new ClusterSerializer(), "AggregationProcessor");
 
 
 

@@ -1,7 +1,10 @@
+package KELOS;
+
 import java.time.Duration;
 import java.util.Collections;
 import java.util.Properties;
 
+import KELOS.Serdes.ClusterDeserializer;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
@@ -37,7 +40,7 @@ public class ClusterConsumer {
 
 
             for (ConsumerRecord<Integer, Cluster> record : records) {
-                System.out.print("Cluster: " + record.key() + ", Size = " + record.value().size + " Centroid at [");
+                System.out.print("KELOS.Cluster: " + record.key() + ", Size = " + record.value().size + " Centroid at [");
 
                 for (double value : record.value().centroid){
                     System.out.print("" + value + ", ");
