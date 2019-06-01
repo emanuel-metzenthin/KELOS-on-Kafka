@@ -23,11 +23,11 @@ import java.util.concurrent.CountDownLatch;
 
 public final class ClusterProcessorService {
 
+    static String APP_ID = "cluster-service";
     static final int AGGREGATION_WINDOWS = 3;
-    static final double DISTANCE_THRESHOLD = 200;
+    static final double DISTANCE_THRESHOLD = 2;
     static final Duration WINDOW_TIME = Duration.ofSeconds(1);
     static String TOPIC = "clusters";
-    static String APP_ID = "cluster-service";
     static String SERVER_CONFIGS = "localhost:9092";
 
     static class ClusterRegistrationProcessorSupplier implements ProcessorSupplier<Integer, Cluster> {
@@ -80,12 +80,11 @@ public final class ClusterProcessorService {
 
                         context.commit();
 
-
-
                         // Clear all meta data in cluster store, but keep centroids for distance computation
                         for(KeyValueIterator<Integer, Cluster> i = clusters.all(); i.hasNext();) {
                             KeyValue<Integer, Cluster> cluster = i.next();
                             Cluster emptyCluster = new Cluster(cluster.value.centroid.length);
+                            System.out.println("New Cluster of size: " + cluster.value.centroid.length);
                             emptyCluster.centroid = cluster.value.centroid;
 
                             this.tempClusters.put(cluster.key, emptyCluster);
@@ -124,6 +123,7 @@ public final class ClusterProcessorService {
                         cluster.addRecord(value);
                         this.tempClusters.put(clusterIdx, cluster);
                     } else {
+                        System.out.println("New Cluster of size for existing point: " + value.size());
                         this.tempClusters.put(numCluster + 1, new Cluster(value));
                     }
                 }
@@ -137,33 +137,35 @@ public final class ClusterProcessorService {
     static class AggregationProcessorSupplier implements ProcessorSupplier<Integer, Cluster> {
 
         /*
-            Aggregates the sub-windows and emits the aggregated clusters
+            Aggregates the sub-windows and emits the aggregated clusters.
+            Stores lists of the states of individual clusters in a local store,
+            merges new arriving clusters with their old states.
          */
         @Override
         public Processor<Integer, Cluster> get() {
             return new Processor<Integer, Cluster>() {
                 private ProcessorContext context;
-                private KeyValueStore<Integer, ArrayList<Cluster>> clusterList;
+                private KeyValueStore<Integer, ArrayList<Cluster>> clusterStates;
 
                 @Override
                 public void init(ProcessorContext context) {
                     this.context = context;
-                    this.clusterList = (KeyValueStore<Integer, ArrayList<Cluster>>) context.getStateStore("ClusterLists");
+                    this.clusterStates = (KeyValueStore<Integer, ArrayList<Cluster>>) context.getStateStore("ClusterStates");
                 }
-
 
                 @Override
                 public void process(Integer key, Cluster value) {
 
-                    ArrayList<Cluster> oldList = this.clusterList.get(key);
+                    ArrayList<Cluster> oldList = this.clusterStates.get(key);
 
                     if (oldList == null || oldList.get(0) == null) {
                         ArrayList<Cluster> newList = new ArrayList<>();
                         newList.add(value);
 
-                        this.clusterList.put(key, newList);
+                        this.clusterStates.put(key, newList);
                     } else {
                         ArrayList<Cluster> newList = oldList;
+
                         if (oldList.size() > ClusterProcessorService.AGGREGATION_WINDOWS){
                             newList.remove(0);
                         }
@@ -177,7 +179,7 @@ public final class ClusterProcessorService {
                         newList.add(value);
 
                         this.context.forward(key, aggregate);
-                        this.clusterList.put(key, newList);
+                        this.clusterStates.put(key, newList);
                     }
                 }
 
@@ -225,9 +227,9 @@ public final class ClusterProcessorService {
 
         builder.addStateStore(
                 Stores.keyValueStoreBuilder(
-                        Stores.inMemoryKeyValueStore("ClusterLists"),
+                        Stores.inMemoryKeyValueStore("ClusterStates"),
                         Serdes.Integer(),
-                        new ClusterListSerde()),
+                        new ClusterStatesSerde()),
                 "AggregationProcessor");
 
         builder.addSink("Sink", ClusterProcessorService.TOPIC, new IntegerSerializer(), new ClusterSerializer(), "AggregationProcessor");

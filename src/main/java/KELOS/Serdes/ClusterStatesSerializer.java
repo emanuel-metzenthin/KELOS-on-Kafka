@@ -9,7 +9,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Map;
 
-public class ClusterListSerializer implements Serializer<ArrayList<Cluster>> {
+public class ClusterStatesSerializer implements Serializer<ArrayList<Cluster>> {
     @Override
     public void configure(Map<String, ?> map, boolean b) {
 
@@ -22,7 +22,6 @@ public class ClusterListSerializer implements Serializer<ArrayList<Cluster>> {
         ClusterSerializer serializer = new ClusterSerializer();
 
         try {
-
             for (Cluster c : clusters){
                 baos.write(serializer.serialize("", c));
             }

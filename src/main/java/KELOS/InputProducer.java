@@ -16,7 +16,8 @@ import org.apache.kafka.common.serialization.StringSerializer;
 
 public class InputProducer {
 
-    static String CSV_DATA = "./data/kddcup.data_10_percent_corrected";
+    // static String CSV_DATA = "./data/kddcup.data_10_percent_corrected";
+    static String CSV_DATA = "./cluster_test_data.csv";
     static String TOPIC = "data-input";
     static String APP_ID = "input-producer";
     static String SERVER_CONFIGS = "localhost:9092";
@@ -51,7 +52,9 @@ public class InputProducer {
                         numberRecord.add(number);
                     }
                 }
-
+                if(numberRecord.size() != 3) {
+                    System.out.println(numberRecord.size());
+                }
                 producer.send(new ProducerRecord<>(InputProducer.TOPIC, numberRecord));
             }
         } catch (IOException e) {

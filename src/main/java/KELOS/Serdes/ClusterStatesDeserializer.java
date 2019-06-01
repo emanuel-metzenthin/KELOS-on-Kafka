@@ -9,7 +9,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Map;
 
-public class ClusterListDeserializer implements Deserializer<ArrayList<Cluster>> {
+public class ClusterStatesDeserializer implements Deserializer<ArrayList<Cluster>> {
     @Override
     public void configure(Map<String, ?> map, boolean b) {
 

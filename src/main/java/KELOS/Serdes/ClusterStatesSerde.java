@@ -9,14 +9,14 @@ import java.util.ArrayList;
 import java.util.Map;
 
 
-public class ClusterListSerde implements Serde<ArrayList<Cluster>> {
+public class ClusterStatesSerde implements Serde<ArrayList<Cluster>> {
 
     private Serializer<ArrayList<Cluster>> serializer;
     private Deserializer<ArrayList<Cluster>> deserializer;
 
-    public ClusterListSerde(){
-        this.serializer = new ClusterListSerializer();
-        this.deserializer = new ClusterListDeserializer();
+    public ClusterStatesSerde(){
+        this.serializer = new ClusterStatesSerializer();
+        this.deserializer = new ClusterStatesDeserializer();
     }
 
     @Override

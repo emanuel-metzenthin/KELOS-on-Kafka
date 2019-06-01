@@ -29,15 +29,12 @@ public class ClusterConsumer {
         props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, ClusterDeserializer.class.getName());
         props.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
 
-
-
         KafkaConsumer<Integer, Cluster> consumer = new KafkaConsumer<>(props);
 
         consumer.subscribe(Collections.singletonList(ClusterProcessorService.TOPIC));
 
         while (true){
             ConsumerRecords<Integer, Cluster> records = consumer.poll(Duration.ofSeconds(1));
-
 
             for (ConsumerRecord<Integer, Cluster> record : records) {
                 System.out.print("KELOS.Cluster: " + record.key() + ", Size = " + record.value().size + " Centroid at [");
