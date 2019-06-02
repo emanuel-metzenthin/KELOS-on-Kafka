@@ -162,6 +162,7 @@ public final class ClusterProcessorService {
                         ArrayList<Cluster> newList = new ArrayList<>();
                         newList.add(value);
 
+                        this.context.forward(key, value);
                         this.clusterStates.put(key, newList);
                     } else {
                         ArrayList<Cluster> newList = oldList;
