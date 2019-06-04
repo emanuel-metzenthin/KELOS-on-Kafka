@@ -21,7 +21,7 @@ import java.util.ArrayList;
 import java.util.Properties;
 import java.util.concurrent.CountDownLatch;
 
-public final class ClusterProcessorService {
+public final class ClusterProcessorService extends Service{
 
     static String APP_ID = "cluster-service";
     static final int AGGREGATION_WINDOWS = 3;
@@ -235,28 +235,6 @@ public final class ClusterProcessorService {
 
         builder.addSink("Sink", ClusterProcessorService.TOPIC, new IntegerSerializer(), new ClusterSerializer(), "AggregationProcessor");
 
-
-
-        // ==== SHUTDOWN ====
-
-        final KafkaStreams streams = new KafkaStreams(builder, props);
-        final CountDownLatch latch = new CountDownLatch(1);
-
-        // attach shutdown handler to catch control-c
-        Runtime.getRuntime().addShutdownHook(new Thread("streams-wordcount-shutdown-hook") {
-            @Override
-            public void run() {
-                streams.close();
-                latch.countDown();
-            }
-        });
-
-        try {
-            streams.start();
-            latch.await();
-        } catch (final Throwable e) {
-            System.exit(1);
-        }
-        System.exit(0);
+        shutdown(builder, props);
     }
 }
