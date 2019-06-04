@@ -103,7 +103,7 @@ public final class ClusterProcessorService extends Service{
                     double minDist = Double.MAX_VALUE;
                     Cluster cluster = null;
                     int clusterIdx = 0;
-                    int numCluster = 0; // Highest cluster index, needed to create new clusters
+                    int highestCluster = 0; // Highest cluster index, needed to create new clusters
 
                     for(KeyValueIterator<Integer, Cluster> i = this.tempClusters.all(); i.hasNext();) {
                         KeyValue<Integer, Cluster> c = i.next();
@@ -116,7 +116,7 @@ public final class ClusterProcessorService extends Service{
                             clusterIdx = c.key;
                         }
 
-                        numCluster++;
+                        highestCluster = Math.max(highestCluster, c.key);
                     }
 
                     if (minDist < ClusterProcessorService.DISTANCE_THRESHOLD) {
@@ -124,7 +124,7 @@ public final class ClusterProcessorService extends Service{
                         this.tempClusters.put(clusterIdx, cluster);
                     } else {
                         System.out.println("New Cluster of size for existing point: " + value.size());
-                        this.tempClusters.put(numCluster + 1, new Cluster(value));
+                        this.tempClusters.put(highestCluster + 1, new Cluster(value));
                     }
                 }
 
@@ -178,8 +178,15 @@ public final class ClusterProcessorService extends Service{
                         }
 
                         newList.add(value);
+                        
+                        if (aggregate.size == 0){
+                            this.context.forward(key, null); // Delete empty cluster
+                        }
+                        else {
+                            this.context.forward(key, aggregate);
+                        }
 
-                        this.context.forward(key, aggregate);
+
                         this.clusterStates.put(key, newList);
                     }
                 }
