@@ -47,7 +47,7 @@ public class DensityEstimationService extends Service {
                         for(KeyValueIterator<Integer, Cluster> i = this.clusters.all(); i.hasNext();) {
                             KeyValue<Integer, Cluster> cluster = i.next();
 
-                            cluster.computeKNN(this.clusters.all());
+                            cluster.value.calculateKNearestNeighbors(this.clusters.all());
 
                             context.forward(cluster.key, cluster.value);
                         }
@@ -79,25 +79,13 @@ public class DensityEstimationService extends Service {
                 public void init(ProcessorContext context) {
                     this.context = context;
                     this.clusters = (KeyValueStore<Integer, Cluster>) context.getStateStore("Clusters");
-
-                    this.context.schedule(ClusterProcessorService.WINDOW_TIME, PunctuationType.STREAM_TIME, timestamp -> {
-                        for(KeyValueIterator<Integer, Cluster> i = this.clusters.all(); i.hasNext();) {
-                            KeyValue<Integer, Cluster> cluster = i.next();
-
-                            cluster.computeKNN(this.clusters.all());
-
-                            context.forward(cluster.key, cluster.value);
-                        }
-
-                        context.commit();
-                    });
                 }
 
                 @Override
                 public void process(Integer key, Cluster cluster) {
                     ArrayList<Cluster> kNNs = new ArrayList<>();
 
-                    for(int i : cluster.kNNIds) {
+                    for(int i : cluster.knnIds) {
                         kNNs.add(this.clusters.get(i));
                     }
 
@@ -146,7 +134,7 @@ public class DensityEstimationService extends Service {
                         dimensionBandwidths.add(bandwidth);
                     }
 
-                    double density = 0
+                    double density = 0;
 
                     for(int i = 0; i < k; i++) {
                         double productKernel = 1;
