@@ -1,6 +1,10 @@
 package KELOS;
 
-import java.util.ArrayList;
+import org.apache.commons.lang3.ArrayUtils;
+import org.apache.kafka.streams.KeyValue;
+import org.apache.kafka.streams.state.KeyValueIterator;
+
+import java.util.*;
 
 public class Cluster {
     public int size;
@@ -8,16 +12,18 @@ public class Cluster {
     public double[] linearSums;
     public double[] minimums;
     public double[] maximums;
+    public int[] knnIds;
 
-    public Cluster(int column_count){
+    public Cluster(int column_count, int k){
         this.size = 0;
         this.centroid = new double[column_count];
         this.linearSums = new double[column_count];
         this.minimums = new double[column_count];
         this.maximums = new double[column_count];
+        this.knnIds = new int[k];
     }
 
-    public Cluster(ArrayList<Double> record){
+    public Cluster(ArrayList<Double> record, int k){
         double[] recordArray = record.stream().mapToDouble(Double::doubleValue).toArray();
 
         this.centroid = recordArray;
@@ -25,6 +31,7 @@ public class Cluster {
         this.minimums = recordArray;
         this.maximums = recordArray;
         this.size = 1;
+        this.knnIds = new int[k];
     }
 
     public double distance(ArrayList<Double> record) {
@@ -61,5 +68,40 @@ public class Cluster {
         }
     }
 
+    public void calculateKNearestNeighbors(KeyValueIterator<Integer, Cluster> clusters){
+        ArrayList<Double> distances = new ArrayList<>();
+        ArrayList<Integer> keys = new ArrayList<>();
 
+        while (clusters.hasNext()){
+            KeyValue<Integer, Cluster> cluster = clusters.next();
+
+
+            Double[] doubleArray = ArrayUtils.toObject(cluster.value.centroid);
+            double distance = this.distance((ArrayList<Double>) Arrays.asList(doubleArray));
+
+            distances.add(distance);
+            keys.add(cluster.key);
+        }
+
+        keys.sort(new ArrayIndexComparator(distances));
+
+        for (int i = 0; i < this.knnIds.length && i < keys.size(); i++){
+            this.knnIds[i] = keys.get(i);
+        }
+    }
+
+    private class ArrayIndexComparator implements Comparator<Integer> {
+        private final ArrayList<Double> list;
+
+        ArrayIndexComparator(ArrayList<Double> list)
+        {
+            this.list = list;
+        }
+
+        @Override
+        public int compare(Integer index1, Integer index2)
+        {
+            return list.get(index1).compareTo(list.get(index2));
+        }
+    }
 }
