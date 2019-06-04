@@ -60,4 +60,6 @@ public class Cluster {
             this.maximums[i] = Math.max(this.maximums[i], otherCluster.maximums[i]);
         }
     }
+
+
 }

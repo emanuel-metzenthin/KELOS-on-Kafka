@@ -52,9 +52,7 @@ public class InputProducer {
                         numberRecord.add(number);
                     }
                 }
-                if(numberRecord.size() != 3) {
-                    System.out.println(numberRecord.size());
-                }
+
                 producer.send(new ProducerRecord<>(InputProducer.TOPIC, numberRecord));
             }
         } catch (IOException e) {
