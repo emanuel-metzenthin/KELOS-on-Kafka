@@ -1,28 +1,34 @@
 package KELOS;
 
 import KELOS.Serdes.*;
+import org.apache.commons.math3.distribution.NormalDistribution;
+import org.apache.kafka.common.serialization.DoubleSerializer;
 import org.apache.kafka.common.serialization.IntegerSerializer;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.streams.KafkaStreams;
+import org.apache.kafka.streams.KeyValue;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.Topology;
 import org.apache.kafka.streams.processor.Processor;
 import org.apache.kafka.streams.processor.ProcessorContext;
 import org.apache.kafka.streams.processor.ProcessorSupplier;
+import org.apache.kafka.streams.processor.PunctuationType;
+import org.apache.kafka.streams.state.KeyValueIterator;
 import org.apache.kafka.streams.state.KeyValueStore;
 import org.apache.kafka.streams.state.Stores;
 
+import java.time.Duration;
+import java.util.ArrayList;
 import java.util.Properties;
 import java.util.concurrent.CountDownLatch;
 
-public class DensityEstimationService {
+public class DensityEstimationService extends Service {
 
     static String APP_ID = "density-estimation-service";
-    static String TOPIC = "clusters_with_density";
+    static String TOPIC = "clusters-with-density";
     static String SERVER_CONFIGS = "localhost:9092";
 
     static class KNearestClusterProcessorSupplier implements ProcessorSupplier<Integer, Cluster> {
-
         /*
             Finds the K nearest neighbors for each input Cluster.
          */
@@ -30,20 +36,127 @@ public class DensityEstimationService {
         public Processor<Integer, Cluster> get() {
             return new Processor<Integer, Cluster>() {
                 private ProcessorContext context;
-                private KeyValueStore<Integer, Cluster> tempClusters;
+                private KeyValueStore<Integer, Cluster> clusters;
 
                 @Override
                 public void init(ProcessorContext context) {
                     this.context = context;
-                    this.tempClusters = (KeyValueStore<Integer, Cluster>) context.getStateStore("KNearestClusters");
+                    this.clusters = (KeyValueStore<Integer, Cluster>) context.getStateStore("Clusters");
+
+                    this.context.schedule(ClusterProcessorService.WINDOW_TIME, PunctuationType.STREAM_TIME, timestamp -> {
+                        for(KeyValueIterator<Integer, Cluster> i = this.clusters.all(); i.hasNext();) {
+                            KeyValue<Integer, Cluster> cluster = i.next();
+
+                            cluster.computeKNN(this.clusters.all());
+
+                            context.forward(cluster.key, cluster.value);
+                        }
+
+                        context.commit();
+                    });
                 }
 
-                /*
-
-                */
                 @Override
-                public void process(Integer key, Cluster value) {
+                public void process(Integer key, Cluster value) { }
 
+                @Override
+                public void close() { }
+            };
+        }
+    }
+
+    static class DensityEstimationProcessorSupplier implements ProcessorSupplier<Integer, Cluster> {
+        /*
+            Finds the K nearest neighbors for each input Cluster.
+         */
+        @Override
+        public Processor<Integer, Cluster> get() {
+            return new Processor<Integer, Cluster>() {
+                private ProcessorContext context;
+                private KeyValueStore<Integer, Cluster> clusters;
+
+                @Override
+                public void init(ProcessorContext context) {
+                    this.context = context;
+                    this.clusters = (KeyValueStore<Integer, Cluster>) context.getStateStore("Clusters");
+
+                    this.context.schedule(ClusterProcessorService.WINDOW_TIME, PunctuationType.STREAM_TIME, timestamp -> {
+                        for(KeyValueIterator<Integer, Cluster> i = this.clusters.all(); i.hasNext();) {
+                            KeyValue<Integer, Cluster> cluster = i.next();
+
+                            cluster.computeKNN(this.clusters.all());
+
+                            context.forward(cluster.key, cluster.value);
+                        }
+
+                        context.commit();
+                    });
+                }
+
+                @Override
+                public void process(Integer key, Cluster cluster) {
+                    ArrayList<Cluster> kNNs = new ArrayList<>();
+
+                    for(int i : cluster.kNNIds) {
+                        kNNs.add(this.clusters.get(i));
+                    }
+
+                    int k = kNNs.size();
+                    int d = kNNs.get(0).centroid.length;
+
+                    ArrayList<Double> clusterWeights = new ArrayList<>();
+
+                    for(Cluster c : kNNs) {
+                        clusterWeights.add((double) (c.size / kNNs.stream().mapToInt(cl -> cl.size).sum()));
+                    }
+
+                    ArrayList<Double> dimensionMeans = new ArrayList<>();
+
+                    for(int i = 0; i < d; i++) {
+                        double mean = 0;
+
+                        for(int m = 0; m < k; m++) {
+                            mean += kNNs.get(m).centroid[i] * clusterWeights.get(m);
+                        }
+
+                        mean /= k;
+
+                        dimensionMeans.add(mean);
+                    }
+
+                    ArrayList<Double> dimensionStdDevs = new ArrayList<>();
+
+                    for(int i = 0; i < d; i++) {
+                        double stdDev = 0;
+
+                        for(int m = 0; m < k; m++) {
+                            double diffToMean = kNNs.get(m).centroid[i] - dimensionMeans.get(m);
+                            stdDev += Math.pow(diffToMean, 2) * clusterWeights.get(m);
+                        }
+
+                        stdDev = Math.sqrt(stdDev);
+
+                        dimensionMeans.add(stdDev);
+                    }
+
+                    ArrayList<Double> dimensionBandwidths = new ArrayList<>();
+
+                    for(int i = 0; i < d; i++) {
+                        double bandwidth = 1.06 * dimensionStdDevs.get(i) * Math.pow(k, -1 / (d + 1));
+                        dimensionBandwidths.add(bandwidth);
+                    }
+
+                    double density = 0
+
+                    for(int i = 0; i < k; i++) {
+                        double productKernel = 1;
+
+                        for(int j = 0; j < d; j++) {
+                            productKernel *= new NormalDistribution(dimensionMeans.get(j), dimensionStdDevs.get(j)).density(cluster.centroid[j]);
+                        }
+
+                        density += productKernel * clusterWeights.get(i);
+                    }
                 }
 
                 @Override
@@ -66,36 +179,10 @@ public class DensityEstimationService {
 
         builder.addProcessor("KNNProcessor", new DensityEstimationService.KNearestClusterProcessorSupplier(), "Source");
 
-        builder.addStateStore(
-                Stores.keyValueStoreBuilder(
-                        Stores.inMemoryKeyValueStore("KNearestClusters"),
-                        Serdes.Integer(),
-                        new ClusterSerde()),
-                "KNNProcessor");
+        builder.addProcessor("DensityEstimator", new DensityEstimationService.DensityEstimationProcessorSupplier(), "KNNProcessor");
 
-        builder.addSink("Sink", DensityEstimationService.TOPIC, new IntegerSerializer(), new ClusterSerializer(), "KNNProcessor");
+        builder.addSink("Sink", DensityEstimationService.TOPIC, new IntegerSerializer(), new DoubleSerializer(), "DensityEstimator");
 
-
-        // ==== SHUTDOWN ====
-
-        final KafkaStreams streams = new KafkaStreams(builder, props);
-        final CountDownLatch latch = new CountDownLatch(1);
-
-        // attach shutdown handler to catch control-c
-        Runtime.getRuntime().addShutdownHook(new Thread("streams-density-estimation-shutdown-hook") {
-            @Override
-            public void run() {
-                streams.close();
-                latch.countDown();
-            }
-        });
-
-        try {
-            streams.start();
-            latch.await();
-        } catch (final Throwable e) {
-            System.exit(1);
-        }
-        System.exit(0);
+        shutdown(builder, props);
     }
 }
