@@ -28,6 +28,8 @@ public class DensityEstimationService extends Service {
     static String TOPIC = "clusters-with-density";
     static String SERVER_CONFIGS = "localhost:9092";
 
+    static final int K = 5;
+
     static class KNearestClusterProcessorSupplier implements ProcessorSupplier<Integer, Cluster> {
         /*
             Finds the K nearest neighbors for each input Cluster.

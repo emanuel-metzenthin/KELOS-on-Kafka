@@ -83,7 +83,7 @@ public final class ClusterProcessorService extends Service{
                         // Clear all meta data in cluster store, but keep centroids for distance computation
                         for(KeyValueIterator<Integer, Cluster> i = clusters.all(); i.hasNext();) {
                             KeyValue<Integer, Cluster> cluster = i.next();
-                            Cluster emptyCluster = new Cluster(cluster.value.centroid.length);
+                            Cluster emptyCluster = new Cluster(cluster.value.centroid.length, DensityEstimationService.K);
                             System.out.println("New Cluster of size: " + cluster.value.centroid.length);
                             emptyCluster.centroid = cluster.value.centroid;
 
@@ -124,7 +124,7 @@ public final class ClusterProcessorService extends Service{
                         this.tempClusters.put(clusterIdx, cluster);
                     } else {
                         System.out.println("New Cluster of size for existing point: " + value.size());
-                        this.tempClusters.put(highestCluster + 1, new Cluster(value));
+                        this.tempClusters.put(highestCluster + 1, new Cluster(value, DensityEstimationService.K));
                     }
                 }
 
