@@ -59,7 +59,9 @@ public class DensityEstimationService extends Service {
                 }
 
                 @Override
-                public void process(Integer key, Cluster value) { }
+                public void process(Integer key, Cluster value) {
+                    this.clusters.put(key, value); // TODO: We also need to remove the clusters once the window expires
+                }
 
                 @Override
                 public void close() { }
@@ -126,7 +128,7 @@ public class DensityEstimationService extends Service {
 
                         stdDev = Math.sqrt(stdDev);
 
-                        dimensionMeans.add(stdDev);
+                        dimensionStdDevs.add(stdDev);
                     }
 
                     ArrayList<Double> dimensionBandwidths = new ArrayList<>();
@@ -142,11 +144,15 @@ public class DensityEstimationService extends Service {
                         double productKernel = 1;
 
                         for(int j = 0; j < d; j++) {
-                            productKernel *= new NormalDistribution(dimensionMeans.get(j), dimensionStdDevs.get(j)).density(cluster.centroid[j]);
+                            // TODO: This should be the difference between the centroid of this cluster and cluster i from the KNN
+                            double difference = Math.abs(cluster.centroid[j]);
+                            productKernel *= new GaussianKernel(dimensionBandwidths.get(i)).computeDensity(difference);
                         }
 
                         density += productKernel * clusterWeights.get(i);
                     }
+
+                    this.context.forward(key, density);
                 }
 
                 @Override
