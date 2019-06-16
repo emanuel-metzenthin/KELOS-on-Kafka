@@ -5,10 +5,10 @@ import org.apache.commons.math3.distribution.NormalDistribution;
 import org.apache.kafka.common.serialization.DoubleSerializer;
 import org.apache.kafka.common.serialization.IntegerSerializer;
 import org.apache.kafka.common.serialization.Serdes;
-import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.KeyValue;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.Topology;
+import org.apache.kafka.streams.kstream.Windowed;
 import org.apache.kafka.streams.processor.Processor;
 import org.apache.kafka.streams.processor.ProcessorContext;
 import org.apache.kafka.streams.processor.ProcessorSupplier;
@@ -16,11 +16,11 @@ import org.apache.kafka.streams.processor.PunctuationType;
 import org.apache.kafka.streams.state.KeyValueIterator;
 import org.apache.kafka.streams.state.KeyValueStore;
 import org.apache.kafka.streams.state.Stores;
+import org.apache.kafka.streams.state.WindowStore;
 
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Properties;
-import java.util.concurrent.CountDownLatch;
 
 public class DensityEstimationService extends Service {
 
@@ -38,18 +38,18 @@ public class DensityEstimationService extends Service {
         public Processor<Integer, Cluster> get() {
             return new Processor<Integer, Cluster>() {
                 private ProcessorContext context;
-                private KeyValueStore<Integer, Cluster> clusters;
+                private WindowStore<Integer, Cluster> clusters;
 
                 @Override
                 public void init(ProcessorContext context) {
                     this.context = context;
-                    this.clusters = (KeyValueStore<Integer, Cluster>) context.getStateStore("Clusters");
+                    this.clusters = (WindowStore<Integer, Cluster>) context.getStateStore("ClusterBuffer");
 
                     this.context.schedule(ClusterProcessorService.WINDOW_TIME, PunctuationType.STREAM_TIME, timestamp -> {
-                        for(KeyValueIterator<Integer, Cluster> i = this.clusters.all(); i.hasNext();) {
-                            KeyValue<Integer, Cluster> cluster = i.next();
+                        for(KeyValueIterator<Windowed<Integer>, Cluster> i = this.clusters.fetchAll(timestamp - ClusterProcessorService.WINDOW_TIME.toMillis() , timestamp); i.hasNext();) {
+                            KeyValue<Windowed<Integer>, Cluster> cluster = i.next();
 
-                            cluster.value.calculateKNearestNeighbors(this.clusters.all());
+                            cluster.value.calculateKNearestNeighbors(this.clusters.fetchAll(timestamp - ClusterProcessorService.WINDOW_TIME.toMillis() , timestamp));
 
                             context.forward(cluster.key, cluster.value);
                         }
@@ -60,7 +60,7 @@ public class DensityEstimationService extends Service {
 
                 @Override
                 public void process(Integer key, Cluster value) {
-                    this.clusters.put(key, value); // TODO: We also need to remove the clusters once the window expires
+                    this.clusters.put(key, value);
                 }
 
                 @Override
@@ -71,7 +71,7 @@ public class DensityEstimationService extends Service {
 
     static class DensityEstimationProcessorSupplier implements ProcessorSupplier<Integer, Cluster> {
         /*
-            Finds the K nearest neighbors for each input Cluster.
+            Estimates the density for each Cluster.
          */
         @Override
         public Processor<Integer, Cluster> get() {
@@ -170,10 +170,17 @@ public class DensityEstimationService extends Service {
         props.put(StreamsConfig.DEFAULT_VALUE_SERDE_CLASS_CONFIG, ClusterSerde.class.getName());
 
         final Topology builder = new Topology();
-
         builder.addSource("Source", ClusterProcessorService.TOPIC);
 
         builder.addProcessor("KNNProcessor", new DensityEstimationService.KNearestClusterProcessorSupplier(), "Source");
+
+        Duration retention =  Duration.ofSeconds(ClusterProcessorService.AGGREGATION_WINDOWS * ClusterProcessorService.WINDOW_TIME.getSeconds());
+        builder.addStateStore(
+                Stores.windowStoreBuilder(
+                        Stores.persistentWindowStore("KNearestClusters", retention, ClusterProcessorService.WINDOW_TIME, false),
+                        Serdes.Integer(),
+                        new ClusterSerde()),
+                "ClusterBuffer");
 
         builder.addProcessor("DensityEstimator", new DensityEstimationService.DensityEstimationProcessorSupplier(), "KNNProcessor");
 

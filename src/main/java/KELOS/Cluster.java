@@ -2,6 +2,7 @@ package KELOS;
 
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.kafka.streams.KeyValue;
+import org.apache.kafka.streams.kstream.Windowed;
 import org.apache.kafka.streams.state.KeyValueIterator;
 
 import java.util.*;
@@ -68,19 +69,19 @@ public class Cluster {
         }
     }
 
-    public void calculateKNearestNeighbors(KeyValueIterator<Integer, Cluster> clusters){
+    public void calculateKNearestNeighbors(KeyValueIterator<Windowed<Integer>, Cluster> clusters){
         ArrayList<Double> distances = new ArrayList<>();
         ArrayList<Integer> keys = new ArrayList<>();
 
         while (clusters.hasNext()){
-            KeyValue<Integer, Cluster> cluster = clusters.next();
+            KeyValue<Windowed<Integer>, Cluster> cluster = clusters.next();
 
 
             Double[] doubleArray = ArrayUtils.toObject(cluster.value.centroid);
             double distance = this.distance((ArrayList<Double>) Arrays.asList(doubleArray));
 
             distances.add(distance);
-            keys.add(cluster.key);
+            keys.add(cluster.key.key());
         }
 
         keys.sort(new ArrayIndexComparator(distances));
