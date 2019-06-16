@@ -47,6 +47,21 @@ public class Cluster {
         return Math.sqrt(sum_of_squares);
     }
 
+    public double distance(Cluster cluster) {
+        if(cluster.centroid.length != this.centroid.length) {
+            return 0;
+        }
+
+        double sum_of_squares = 0;
+
+        for(int i = 0; i < this.centroid.length; i++){
+            double difference = cluster.centroid[i] - this.centroid[i];
+            sum_of_squares += difference * difference;
+        }
+
+        return Math.sqrt(sum_of_squares);
+    }
+
     public void addRecord(ArrayList<Double> record){
         this.size += 1;
 

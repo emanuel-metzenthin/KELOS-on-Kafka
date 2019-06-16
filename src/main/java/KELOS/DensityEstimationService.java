@@ -144,8 +144,7 @@ public class DensityEstimationService extends Service {
                         double productKernel = 1;
 
                         for(int j = 0; j < d; j++) {
-                            // TODO: This should be the difference between the centroid of this cluster and cluster i from the KNN
-                            double difference = Math.abs(cluster.centroid[j]);
+                            double difference = cluster.distance(clusters.get(i));
                             productKernel *= new GaussianKernel(dimensionBandwidths.get(i)).computeDensity(difference);
                         }
 
