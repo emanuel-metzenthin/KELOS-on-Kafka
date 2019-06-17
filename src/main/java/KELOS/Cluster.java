@@ -83,7 +83,7 @@ public class Cluster {
     }
 
     public void calculateKNearestNeighbors(KeyValueIterator<Integer, Cluster> clusters){
-        ArrayList<Double> distances = new ArrayList<>();
+        HashMap<Integer, Double> distances = new HashMap<>();
         ArrayList<Integer> keys = new ArrayList<>();
 
         while (clusters.hasNext()){
@@ -91,7 +91,7 @@ public class Cluster {
 
             double distance = this.distance(cluster.value);
 
-            distances.add(cluster.key, distance);
+            distances.put(cluster.key, distance);
             keys.add(cluster.key);
         }
 
@@ -103,17 +103,17 @@ public class Cluster {
     }
 
     private class ArrayIndexComparator implements Comparator<Integer> {
-        private final ArrayList<Double> list;
+        private final HashMap<Integer, Double> hashmap;
 
-        ArrayIndexComparator(ArrayList<Double> list)
+        ArrayIndexComparator(HashMap<Integer, Double> hashmap)
         {
-            this.list = list;
+            this.hashmap = hashmap;
         }
 
         @Override
         public int compare(Integer index1, Integer index2)
         {
-            return list.get(index1).compareTo(list.get(index2));
+            return this.hashmap.get(index1).compareTo(this.hashmap.get(index2));
         }
     }
 }

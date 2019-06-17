@@ -64,7 +64,7 @@ public class DensityEstimationProcessorSupplier implements ProcessorSupplier<Int
                     double stdDev = 0;
 
                     for(int m = 0; m < k; m++) {
-                        double diffToMean = kNNs.get(m).centroid[i] - dimensionMeans.get(m);
+                        double diffToMean = kNNs.get(m).centroid[i] - dimensionMeans.get(i);
                         stdDev += Math.pow(diffToMean, 2) * clusterWeights.get(m);
                     }
 
@@ -87,7 +87,7 @@ public class DensityEstimationProcessorSupplier implements ProcessorSupplier<Int
 
                     for(int j = 0; j < d; j++) {
                         double difference = cluster.distance(kNNs.get(i));
-                        productKernel *= new GaussianKernel(dimensionBandwidths.get(i)).computeDensity(difference);
+                        productKernel *= new GaussianKernel(dimensionBandwidths.get(j)).computeDensity(difference);
                     }
 
                     density += productKernel * clusterWeights.get(i);
