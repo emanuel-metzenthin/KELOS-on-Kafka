@@ -1,35 +1,25 @@
 package KELOS;
 
-import KELOS.Serdes.*;
-import org.apache.commons.math3.distribution.NormalDistribution;
+import KELOS.Processors.DensityEstimationProcessorSupplier;
+import KELOS.Processors.KNearestClusterProcessorSupplier;
+import KELOS.Serdes.ClusterDeserializer;
+import KELOS.Serdes.ClusterSerde;
+import KELOS.Serdes.ClusterSerializer;
+import KELOS.Serdes.ClusterStatesSerde;
 import org.apache.kafka.common.serialization.DoubleSerializer;
+import org.apache.kafka.common.serialization.IntegerDeserializer;
 import org.apache.kafka.common.serialization.IntegerSerializer;
 import org.apache.kafka.common.serialization.Serdes;
-import org.apache.kafka.streams.KeyValue;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.Topology;
-import org.apache.kafka.streams.kstream.Windowed;
-import org.apache.kafka.streams.processor.Processor;
-import org.apache.kafka.streams.processor.ProcessorContext;
-import org.apache.kafka.streams.processor.ProcessorSupplier;
-import org.apache.kafka.streams.processor.PunctuationType;
-import org.apache.kafka.streams.state.KeyValueIterator;
-import org.apache.kafka.streams.state.KeyValueStore;
 import org.apache.kafka.streams.state.Stores;
-import org.apache.kafka.streams.state.WindowStore;
 
 import java.time.Duration;
-import java.util.ArrayList;
 import java.util.Properties;
 
-public class DensityEstimationService extends Service {
+import static KELOS.Service.shutdown;
 
-    static String APP_ID = "density-estimation-service";
-    static String TOPIC = "clusters-with-density";
-    static String SERVER_CONFIGS = "localhost:9092";
-
-    static final int K = 5;
-
+public class Main {
     public static void main(final String[] args) {
         final Properties props = new Properties();
         props.put(StreamsConfig.APPLICATION_ID_CONFIG, DensityEstimationService.APP_ID);
@@ -39,9 +29,31 @@ public class DensityEstimationService extends Service {
         props.put(StreamsConfig.DEFAULT_VALUE_SERDE_CLASS_CONFIG, ClusterSerde.class.getName());
 
         final Topology builder = new Topology();
+
+        builder.addSource("Source", InputProducer.TOPIC);
+
+        builder.addProcessor("ClusteringProcessor", new ClusterProcessorService.ClusteringProcessorSupplier(), "Source");
+        builder.addProcessor("AggregationProcessor", new ClusterProcessorService.AggregationProcessorSupplier(), "ClusteringProcessor");
+
+        builder.addStateStore(
+                Stores.keyValueStoreBuilder(
+                        Stores.inMemoryKeyValueStore("TempClusters"),
+                        Serdes.Integer(),
+                        new ClusterSerde()),
+                "ClusteringProcessor");
+
+        builder.addStateStore(
+                Stores.keyValueStoreBuilder(
+                        Stores.inMemoryKeyValueStore("ClusterStates"),
+                        Serdes.Integer(),
+                        new ClusterStatesSerde()),
+                "AggregationProcessor");
+
+        builder.addSink("Sink", ClusterProcessorService.TOPIC, new IntegerSerializer(), new ClusterSerializer(), "AggregationProcessor");
+
         builder.addSource("Source", ClusterProcessorService.TOPIC);
 
-        builder.addProcessor("KNNProcessor", new DensityEstimationService.KNearestClusterProcessorSupplier(), "Source");
+        builder.addProcessor("KNNProcessor", new KNearestClusterProcessorSupplier(), "Source");
 
         Duration retention =  Duration.ofSeconds(ClusterProcessorService.AGGREGATION_WINDOWS * ClusterProcessorService.WINDOW_TIME.getSeconds());
         builder.addStateStore(
@@ -51,7 +63,7 @@ public class DensityEstimationService extends Service {
                         new ClusterSerde()),
                 "KNNProcessor");
 
-        builder.addProcessor("DensityEstimator", new DensityEstimationService.DensityEstimationProcessorSupplier(), "KNNProcessor");
+        builder.addProcessor("DensityEstimator", new DensityEstimationProcessorSupplier(), "KNNProcessor");
 
         builder.addSink("Sink", DensityEstimationService.TOPIC, new IntegerSerializer(), new DoubleSerializer(), "DensityEstimator");
 

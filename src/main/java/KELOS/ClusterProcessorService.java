@@ -24,9 +24,9 @@ import java.util.concurrent.CountDownLatch;
 public final class ClusterProcessorService extends Service{
 
     static String APP_ID = "cluster-service";
-    static final int AGGREGATION_WINDOWS = 3;
+    public static final int AGGREGATION_WINDOWS = 3;
     static final double DISTANCE_THRESHOLD = 2;
-    static final Duration WINDOW_TIME = Duration.ofSeconds(1);
+    public static final Duration WINDOW_TIME = Duration.ofSeconds(1);
     static String TOPIC = "clusters";
     static String SERVER_CONFIGS = "localhost:9092";
 
