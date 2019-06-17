@@ -1,8 +1,6 @@
 package KELOS;
 
-import org.apache.commons.lang3.ArrayUtils;
 import org.apache.kafka.streams.KeyValue;
-import org.apache.kafka.streams.kstream.Windowed;
 import org.apache.kafka.streams.state.KeyValueIterator;
 
 import java.util.*;
