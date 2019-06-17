@@ -28,7 +28,7 @@ public class DensityEstimationService extends Service {
     static String TOPIC = "clusters-with-density";
     static String SERVER_CONFIGS = "localhost:9092";
 
-    static final int K = 5;
+    public static final int K = 5;
 
     static class KNearestClusterProcessorSupplier implements ProcessorSupplier<Integer, Cluster> {
         /*
@@ -176,10 +176,10 @@ public class DensityEstimationService extends Service {
         Duration retention =  Duration.ofSeconds(ClusterProcessorService.AGGREGATION_WINDOWS * ClusterProcessorService.WINDOW_TIME.getSeconds());
         builder.addStateStore(
                 Stores.windowStoreBuilder(
-                        Stores.persistentWindowStore("KNearestClusters", retention, ClusterProcessorService.WINDOW_TIME, false),
+                        Stores.persistentWindowStore("ClusterBuffer", retention, ClusterProcessorService.WINDOW_TIME, false),
                         Serdes.Integer(),
                         new ClusterSerde()),
-                "ClusterBuffer");
+                "KNNProcessor");
 
         builder.addProcessor("DensityEstimator", new DensityEstimationService.DensityEstimationProcessorSupplier(), "KNNProcessor");
 
