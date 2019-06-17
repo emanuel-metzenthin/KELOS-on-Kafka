@@ -93,7 +93,7 @@ public class Cluster {
 
             double distance = this.distance(cluster.value);
 
-            distances.add(distance);
+            distances.add(cluster.key, distance);
             keys.add(cluster.key);
         }
 

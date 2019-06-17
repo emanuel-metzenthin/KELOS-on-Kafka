@@ -30,6 +30,9 @@ public class DensityEstimationProcessorSupplier implements ProcessorSupplier<Int
                 ArrayList<Cluster> kNNs = new ArrayList<>();
 
                 for(int i : cluster.knnIds) {
+                    System.out.println(this.clusters.get(0));
+                    System.out.println(this.clusters.get(0));
+                    System.out.println(this.clusters.get(0));
                     kNNs.add(this.clusters.get(i));
                 }
 
@@ -84,7 +87,7 @@ public class DensityEstimationProcessorSupplier implements ProcessorSupplier<Int
                     double productKernel = 1;
 
                     for(int j = 0; j < d; j++) {
-                        double difference = cluster.distance(clusters.get(i));
+                        double difference = cluster.distance(kNNs.get(i));
                         productKernel *= new GaussianKernel(dimensionBandwidths.get(i)).computeDensity(difference);
                     }
 
