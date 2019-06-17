@@ -91,9 +91,7 @@ public class Cluster {
         while (clusters.hasNext()){
             KeyValue<Windowed<Integer>, Cluster> cluster = clusters.next();
 
-
-            Double[] doubleArray = ArrayUtils.toObject(cluster.value.centroid);
-            double distance = this.distance((ArrayList<Double>) Arrays.asList(doubleArray));
+            double distance = this.distance(cluster.value);
 
             distances.add(distance);
             keys.add(cluster.key.key());
