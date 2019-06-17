@@ -1,8 +1,6 @@
 package KELOS.Processors;
 
 import KELOS.Cluster;
-import KELOS.ClusterProcessorService;
-import KELOS.DensityEstimationService;
 import org.apache.kafka.streams.KeyValue;
 import org.apache.kafka.streams.processor.Processor;
 import org.apache.kafka.streams.processor.ProcessorContext;
@@ -12,6 +10,8 @@ import org.apache.kafka.streams.state.KeyValueIterator;
 import org.apache.kafka.streams.state.KeyValueStore;
 
 import java.util.ArrayList;
+
+import static KELOS.Main.*;
 
 public class ClusteringProcessorSupplier implements ProcessorSupplier<String, ArrayList<Double>> {
 
@@ -32,7 +32,7 @@ public class ClusteringProcessorSupplier implements ProcessorSupplier<String, Ar
                 KeyValueStore<Integer, Cluster> clusters = (KeyValueStore<Integer, Cluster>) context.getStateStore("Clusters");
 
                 // Emit cluster meta data after sub-window has been processed
-                this.context.schedule(ClusterProcessorService.WINDOW_TIME, PunctuationType.STREAM_TIME, timestamp -> {
+                this.context.schedule(WINDOW_TIME, PunctuationType.STREAM_TIME, timestamp -> {
                     for(KeyValueIterator<Integer, Cluster> i = this.tempClusters.all(); i.hasNext();) {
                         KeyValue<Integer, Cluster> cluster = i.next();
                         context.forward(cluster.key, cluster.value);
@@ -43,7 +43,7 @@ public class ClusteringProcessorSupplier implements ProcessorSupplier<String, Ar
                     // Clear all meta data in cluster store, but keep centroids for distance computation
                     for(KeyValueIterator<Integer, Cluster> i = clusters.all(); i.hasNext();) {
                         KeyValue<Integer, Cluster> cluster = i.next();
-                        Cluster emptyCluster = new Cluster(cluster.value.centroid.length, DensityEstimationService.K);
+                        Cluster emptyCluster = new Cluster(cluster.value.centroid.length, K);
                         System.out.println("New Cluster of size: " + cluster.value.centroid.length);
                         emptyCluster.centroid = cluster.value.centroid;
 
@@ -79,12 +79,12 @@ public class ClusteringProcessorSupplier implements ProcessorSupplier<String, Ar
                     highestCluster = Math.max(highestCluster, c.key);
                 }
 
-                if (minDist < ClusterProcessorService.DISTANCE_THRESHOLD) {
+                if (minDist < DISTANCE_THRESHOLD) {
                     cluster.addRecord(value);
                     this.tempClusters.put(clusterIdx, cluster);
                 } else {
                     System.out.println("New Cluster of size for existing point: " + value.size());
-                    this.tempClusters.put(highestCluster + 1, new Cluster(value, DensityEstimationService.K));
+                    this.tempClusters.put(highestCluster + 1, new Cluster(value, K));
                 }
             }
 

@@ -1,7 +1,7 @@
 package KELOS.Processors;
 
 import KELOS.Cluster;
-import KELOS.ClusterProcessorService;
+import KELOS.Main;
 import org.apache.kafka.streams.processor.Processor;
 import org.apache.kafka.streams.processor.ProcessorContext;
 import org.apache.kafka.streams.processor.ProcessorSupplier;
@@ -42,7 +42,7 @@ public class AggregationProcessorSupplier implements ProcessorSupplier<Integer, 
                 } else {
                     ArrayList<Cluster> newList = oldList;
 
-                    if (oldList.size() > ClusterProcessorService.AGGREGATION_WINDOWS){
+                    if (oldList.size() > Main.AGGREGATION_WINDOWS){
                         newList.remove(0);
                     }
 

@@ -1,7 +1,6 @@
 package KELOS.Processors;
 
 import KELOS.Cluster;
-import KELOS.ClusterProcessorService;
 import org.apache.kafka.streams.KeyValue;
 import org.apache.kafka.streams.kstream.Windowed;
 import org.apache.kafka.streams.processor.Processor;
@@ -10,6 +9,8 @@ import org.apache.kafka.streams.processor.ProcessorSupplier;
 import org.apache.kafka.streams.processor.PunctuationType;
 import org.apache.kafka.streams.state.KeyValueIterator;
 import org.apache.kafka.streams.state.WindowStore;
+
+import static KELOS.Main.WINDOW_TIME;
 
 public class KNearestClusterProcessorSupplier implements ProcessorSupplier<Integer, Cluster> {
     /*
@@ -26,11 +27,11 @@ public class KNearestClusterProcessorSupplier implements ProcessorSupplier<Integ
                 this.context = context;
                 this.clusters = (WindowStore<Integer, Cluster>) context.getStateStore("ClusterBuffer");
 
-                this.context.schedule(ClusterProcessorService.WINDOW_TIME, PunctuationType.STREAM_TIME, timestamp -> {
-                    for(KeyValueIterator<Windowed<Integer>, Cluster> i = this.clusters.fetchAll(timestamp - ClusterProcessorService.WINDOW_TIME.toMillis() , timestamp); i.hasNext();) {
+                this.context.schedule(WINDOW_TIME, PunctuationType.STREAM_TIME, timestamp -> {
+                    for(KeyValueIterator<Windowed<Integer>, Cluster> i = this.clusters.fetchAll(timestamp - WINDOW_TIME.toMillis() , timestamp); i.hasNext();) {
                         KeyValue<Windowed<Integer>, Cluster> cluster = i.next();
 
-                        cluster.value.calculateKNearestNeighbors(this.clusters.fetchAll(timestamp - ClusterProcessorService.WINDOW_TIME.toMillis() , timestamp));
+                        cluster.value.calculateKNearestNeighbors(this.clusters.fetchAll(timestamp - WINDOW_TIME.toMillis() , timestamp));
 
                         context.forward(cluster.key, cluster.value);
                     }

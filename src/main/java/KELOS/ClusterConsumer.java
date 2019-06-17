@@ -11,6 +11,8 @@ import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.common.serialization.IntegerDeserializer;
 
+import static KELOS.Main.CLUSTER_TOPIC;
+
 public class ClusterConsumer {
 
     static String GROUP_ID = "debug-consumer";
@@ -31,7 +33,7 @@ public class ClusterConsumer {
 
         KafkaConsumer<Integer, Cluster> consumer = new KafkaConsumer<>(props);
 
-        consumer.subscribe(Collections.singletonList(ClusterProcessorService.TOPIC));
+        consumer.subscribe(Collections.singletonList(CLUSTER_TOPIC));
 
         while (true){
             ConsumerRecords<Integer, Cluster> records = consumer.poll(Duration.ofSeconds(1));
