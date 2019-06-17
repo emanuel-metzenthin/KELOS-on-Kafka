@@ -28,7 +28,7 @@ public class DensityEstimationService extends Service {
     static String TOPIC = "clusters-with-density";
     static String SERVER_CONFIGS = "localhost:9092";
 
-    static final int K = 5;
+    public static final int K = 5;
 
     public static void main(final String[] args) {
         final Properties props = new Properties();
