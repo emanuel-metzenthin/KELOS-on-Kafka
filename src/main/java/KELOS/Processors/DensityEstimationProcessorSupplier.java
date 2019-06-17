@@ -30,7 +30,9 @@ public class DensityEstimationProcessorSupplier implements ProcessorSupplier<Int
                 ArrayList<Cluster> kNNs = new ArrayList<>();
 
                 for(int i : cluster.knnIds) {
-                    kNNs.add(this.clusters.get(i));
+                    if (this.clusters.get(i) != null){
+                        kNNs.add(this.clusters.get(i));
+                    }
                 }
 
                 int k = kNNs.size();
