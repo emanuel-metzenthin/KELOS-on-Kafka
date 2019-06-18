@@ -21,6 +21,12 @@ public class ClusterSerializer implements Serializer<Cluster> {
         DataOutputStream out = new DataOutputStream(baos);
 
         try {
+            if (cluster == null){
+                out.writeBoolean(true);
+                return baos.toByteArray();
+            }
+
+            out.writeBoolean(false);
             out.writeInt(cluster.linearSums.length);
             out.writeInt(cluster.knnIds.length);
             out.writeInt(cluster.size);
