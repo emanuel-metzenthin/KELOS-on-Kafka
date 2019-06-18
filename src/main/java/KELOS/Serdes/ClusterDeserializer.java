@@ -17,16 +17,14 @@ public class ClusterDeserializer implements Deserializer<Cluster> {
     @Override
     public Cluster deserialize(String topic, byte[] bytes) {
 
+        if (bytes == null){
+            return null;
+        }
+
         ByteArrayInputStream bais = new ByteArrayInputStream(bytes);
         DataInputStream in = new DataInputStream(bais);
 
         try{
-            boolean isNull = in.readBoolean();
-
-            if (isNull){
-                return null;
-            }
-
             int dimensions = in.readInt();
             int k = in.readInt();
             Cluster c = new Cluster(dimensions, k);

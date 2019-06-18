@@ -17,16 +17,14 @@ public class ClusterSerializer implements Serializer<Cluster> {
     @Override
     public byte[] serialize(String topic, Cluster cluster) {
 
+        if (cluster == null){
+            return null;
+        }
+
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         DataOutputStream out = new DataOutputStream(baos);
 
         try {
-            if (cluster == null){
-                out.writeBoolean(true);
-                return baos.toByteArray();
-            }
-
-            out.writeBoolean(false);
             out.writeInt(cluster.linearSums.length);
             out.writeInt(cluster.knnIds.length);
             out.writeInt(cluster.size);

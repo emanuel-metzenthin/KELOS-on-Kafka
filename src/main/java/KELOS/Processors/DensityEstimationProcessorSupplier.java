@@ -46,10 +46,6 @@ public class DensityEstimationProcessorSupplier implements ProcessorSupplier<Int
 
                 int totalSize = kNNs.stream().mapToInt(cl -> cl.size).sum();
 
-                // TODO fix empty clusters
-                if (totalSize == 0) {
-                    return;
-                }
 
                 for(Cluster c : kNNs) {
                     clusterWeights.add((double) c.size / totalSize);
