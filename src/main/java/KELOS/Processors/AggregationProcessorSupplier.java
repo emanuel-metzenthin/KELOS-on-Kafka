@@ -9,6 +9,8 @@ import org.apache.kafka.streams.state.KeyValueStore;
 
 import java.util.ArrayList;
 
+import static KELOS.Main.K;
+
 public class AggregationProcessorSupplier implements ProcessorSupplier<Integer, Cluster> {
 
     /*
@@ -33,7 +35,7 @@ public class AggregationProcessorSupplier implements ProcessorSupplier<Integer, 
 
                 ArrayList<Cluster> oldList = this.clusterStates.get(key);
 
-                if (oldList == null || oldList.get(0) == null) {
+                if (oldList == null || oldList.size() == 0 || oldList.get(0) == null) {
                     ArrayList<Cluster> newList = new ArrayList<>();
                     newList.add(value);
 
@@ -46,13 +48,18 @@ public class AggregationProcessorSupplier implements ProcessorSupplier<Integer, 
                         newList.remove(0);
                     }
 
-                    Cluster aggregate = value;
+                    Cluster aggregate = new Cluster(value.centroid.length, K);
+                    aggregate.merge(value);
 
                     for (Cluster c : newList){
                         aggregate.merge(c);
                     }
 
                     newList.add(value);
+
+                    if (aggregate.size < 0){
+                        System.out.print("");
+                    }
 
                     if (aggregate.size == 0){
                         this.context.forward(key, null); // Delete empty cluster

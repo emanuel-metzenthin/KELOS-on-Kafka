@@ -21,6 +21,12 @@ public class ClusterDeserializer implements Deserializer<Cluster> {
         DataInputStream in = new DataInputStream(bais);
 
         try{
+            boolean isNull = in.readBoolean();
+
+            if (isNull){
+                return null;
+            }
+
             int dimensions = in.readInt();
             int k = in.readInt();
             Cluster c = new Cluster(dimensions, k);
