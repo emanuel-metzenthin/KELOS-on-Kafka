@@ -14,4 +14,4 @@ df = pd.DataFrame(data)
 
 plt.scatter(df[0], df[2])
 
-df.to_csv('cluster_test_data.csv')
+df.to_csv('cluster_test_data.csv', index=False, header=False)
