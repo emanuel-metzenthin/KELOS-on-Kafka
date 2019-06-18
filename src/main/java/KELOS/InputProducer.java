@@ -3,6 +3,8 @@ package KELOS;
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.Charset;
+import java.sql.Time;
+import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Properties;
 
@@ -12,6 +14,7 @@ import org.apache.commons.csv.CSVParser;
 import org.apache.commons.csv.CSVRecord;
 import org.apache.commons.lang3.math.NumberUtils;
 import org.apache.kafka.clients.producer.*;
+import org.apache.kafka.common.serialization.IntegerSerializer;
 import org.apache.kafka.common.serialization.StringSerializer;
 
 public class InputProducer {
@@ -31,15 +34,17 @@ public class InputProducer {
 
         props.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, InputProducer.SERVER_CONFIGS);
         props.put(ProducerConfig.CLIENT_ID_CONFIG, InputProducer.APP_ID);
-        props.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
+        props.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, IntegerSerializer.class.getName());
         props.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, ArrayListSerializer.class.getName());
 
-        Producer<String, ArrayList<Double>> producer = new KafkaProducer<>(props);
+        Producer<Integer, ArrayList<Double>> producer = new KafkaProducer<>(props);
 
         File csvData = new File(InputProducer.CSV_DATA);
 
         try {
             CSVParser parser = CSVParser.parse(csvData, Charset.forName("UTF-8"), CSVFormat.RFC4180);
+
+            Long timestamp = System.currentTimeMillis();
 
             for (CSVRecord csvRecord : parser) {
                 ArrayList<Double> numberRecord = new ArrayList<>();
@@ -53,7 +58,9 @@ public class InputProducer {
                     }
                 }
 
-                producer.send(new ProducerRecord<>(InputProducer.TOPIC, numberRecord));
+                timestamp += 100;
+
+                producer.send(new ProducerRecord<>(InputProducer.TOPIC, 0, timestamp, 0, numberRecord));
             }
         } catch (IOException e) {
             e.printStackTrace();

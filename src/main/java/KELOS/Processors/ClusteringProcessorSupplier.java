@@ -13,15 +13,15 @@ import java.util.ArrayList;
 
 import static KELOS.Main.*;
 
-public class ClusteringProcessorSupplier implements ProcessorSupplier<String, ArrayList<Double>> {
+public class ClusteringProcessorSupplier implements ProcessorSupplier<Integer, ArrayList<Double>> {
 
     /*
         Clusters data points in sub-windows and emits cluster meta-data for the ClusterRegistrationProcessor
         to aggregate them into the global store.
      */
     @Override
-    public Processor<String, ArrayList<Double>> get() {
-        return new Processor<String, ArrayList<Double>>() {
+    public Processor<Integer, ArrayList<Double>> get() {
+        return new Processor<Integer, ArrayList<Double>>() {
             private ProcessorContext context;
             private KeyValueStore<Integer, Cluster> tempClusters;
 
@@ -57,7 +57,7 @@ public class ClusteringProcessorSupplier implements ProcessorSupplier<String, Ar
                 new clusters for distances above the threshold.
             */
             @Override
-            public void process(String key, ArrayList<Double> value) {
+            public void process(Integer key, ArrayList<Double> value) {
 
                 double minDist = Double.MAX_VALUE;
                 Cluster cluster = null;

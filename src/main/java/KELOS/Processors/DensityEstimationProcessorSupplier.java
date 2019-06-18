@@ -35,6 +35,10 @@ public class DensityEstimationProcessorSupplier implements ProcessorSupplier<Int
                     }
                 }
 
+                if (kNNs.size() <= 1) {
+                    return;
+                }
+
                 int k = kNNs.size();
                 int d = kNNs.get(0).centroid.length;
 
