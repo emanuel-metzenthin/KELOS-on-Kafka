@@ -44,8 +44,15 @@ public class DensityEstimationProcessorSupplier implements ProcessorSupplier<Int
 
                 ArrayList<Double> clusterWeights = new ArrayList<>();
 
+                int totalSize = kNNs.stream().mapToInt(cl -> cl.size).sum();
+
+                // TODO fix empty clusters
+                if (totalSize == 0) {
+                    return;
+                }
+
                 for(Cluster c : kNNs) {
-                    clusterWeights.add((double) c.size / kNNs.stream().mapToInt(cl -> cl.size).sum());
+                    clusterWeights.add((double) c.size / totalSize);
                 }
 
                 ArrayList<Double> dimensionMeans = new ArrayList<>();
