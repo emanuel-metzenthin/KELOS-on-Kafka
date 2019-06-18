@@ -80,7 +80,7 @@ public class DensityEstimationProcessorSupplier implements ProcessorSupplier<Int
                 ArrayList<Double> dimensionBandwidths = new ArrayList<>();
 
                 for(int i = 0; i < d; i++) {
-                    double bandwidth = 1.06 * dimensionStdDevs.get(i) * Math.pow(k, -1 / (d + 1));
+                    double bandwidth = 1.06 * dimensionStdDevs.get(i) * Math.pow(k, -1.0 / (d + 1));
                     dimensionBandwidths.add(bandwidth);
                 }
 
@@ -90,7 +90,7 @@ public class DensityEstimationProcessorSupplier implements ProcessorSupplier<Int
                     double productKernel = 1;
 
                     for(int j = 0; j < d; j++) {
-                        double difference = cluster.distance(kNNs.get(i));
+                        double difference = Math.abs(cluster.centroid[j] - kNNs.get(i).centroid[j]);
                         productKernel *= new GaussianKernel(dimensionBandwidths.get(j)).computeDensity(difference);
                     }
 
