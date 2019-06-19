@@ -19,6 +19,7 @@ public class Main {
     static final String APP_ID = "KELOS";
     static final String SERVER_CONFIGS = "localhost:9092";
 
+    public static final String CLUSTER_ASSIGNMENT_TOPIC = "cluster-assignments";
     public static final String CLUSTER_TOPIC = "clusters";
     public static final String DENSITIES_TOPIC = "densities";
     public static final int AGGREGATION_WINDOWS = 3;
@@ -53,6 +54,7 @@ public class Main {
                 new ClusterRegistrationProcessorSupplier());
 
         builder.addProcessor("ClusteringProcessor", new ClusteringProcessorSupplier(), "DataSource");
+        builder.addSink("ClusterAssignmentSink", CLUSTER_ASSIGNMENT_TOPIC, new IntegerSerializer(), new ArrayListSerializer(), "ClusteringProcessor");
         builder.addProcessor("AggregationProcessor", new AggregationProcessorSupplier(), "ClusteringProcessor");
 
         builder.addStateStore(
@@ -69,7 +71,7 @@ public class Main {
                         new ClusterStatesSerde()),
                 "AggregationProcessor");
 
-        builder.addSink("Sink", CLUSTER_TOPIC, new IntegerSerializer(), new ClusterSerializer(), "AggregationProcessor");
+        builder.addSink("ClusterSink", CLUSTER_TOPIC, new IntegerSerializer(), new ClusterSerializer(), "AggregationProcessor");
 
         builder.addProcessor("KNNProcessor", new KNearestClusterProcessorSupplier(), "AggregationProcessor");
 
@@ -82,7 +84,7 @@ public class Main {
 
         builder.addProcessor("DensityEstimator", new DensityEstimationProcessorSupplier(), "KNNProcessor");
 
-        builder.addSink("Densities", DENSITIES_TOPIC, new IntegerSerializer(), new DoubleSerializer(), "DensityEstimator");
+        builder.addSink("ClusterDensitySink", DENSITIES_TOPIC, new IntegerSerializer(), new DoubleSerializer(), "DensityEstimator");
 
         shutdown(builder, props);
     }

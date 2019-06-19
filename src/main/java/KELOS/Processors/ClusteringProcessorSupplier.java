@@ -2,10 +2,7 @@ package KELOS.Processors;
 
 import KELOS.Cluster;
 import org.apache.kafka.streams.KeyValue;
-import org.apache.kafka.streams.processor.Processor;
-import org.apache.kafka.streams.processor.ProcessorContext;
-import org.apache.kafka.streams.processor.ProcessorSupplier;
-import org.apache.kafka.streams.processor.PunctuationType;
+import org.apache.kafka.streams.processor.*;
 import org.apache.kafka.streams.state.KeyValueIterator;
 import org.apache.kafka.streams.state.KeyValueStore;
 
@@ -35,7 +32,7 @@ public class ClusteringProcessorSupplier implements ProcessorSupplier<Integer, A
                 this.context.schedule(WINDOW_TIME, PunctuationType.STREAM_TIME, timestamp -> {
                     for(KeyValueIterator<Integer, Cluster> i = this.tempClusters.all(); i.hasNext();) {
                         KeyValue<Integer, Cluster> cluster = i.next();
-                        context.forward(cluster.key, cluster.value);
+                        context.forward(cluster.key, cluster.value, To.child("AggregationProcessor"));
                     }
 
                     context.commit();
@@ -81,8 +78,10 @@ public class ClusteringProcessorSupplier implements ProcessorSupplier<Integer, A
                 if (minDist < DISTANCE_THRESHOLD) {
                     cluster.addRecord(value);
                     this.tempClusters.put(clusterIdx, cluster);
+                    this.context.forward(clusterIdx, value, To.child("ClusterAssignmentSink"));
                 } else {
                     this.tempClusters.put(highestCluster + 1, new Cluster(value, K));
+                    this.context.forward(highestCluster + 1, value, To.child("ClusterAssignmentSink"));
                 }
             }
 
