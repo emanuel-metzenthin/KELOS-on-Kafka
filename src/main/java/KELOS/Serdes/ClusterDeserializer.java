@@ -29,6 +29,7 @@ public class ClusterDeserializer implements Deserializer<Cluster> {
             int k = in.readInt();
             Cluster c = new Cluster(dimensions, k);
             c.size = in.readInt();
+            c.oldSize = in.readInt();
 
 
             for(int i = 0; i < dimensions; i++){
@@ -38,6 +39,10 @@ public class ClusterDeserializer implements Deserializer<Cluster> {
             for(int i = 0; i < dimensions; i++){
                 double element = in.readDouble();
                 c.linearSums[i] = element;
+            }
+            for(int i = 0; i < dimensions; i++){
+                double element = in.readDouble();
+                c.oldLinearSums[i] = element;
             }
             for(int i = 0; i < dimensions; i++){
                 double element = in.readDouble();

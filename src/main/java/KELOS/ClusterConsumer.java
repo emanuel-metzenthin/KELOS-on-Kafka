@@ -39,17 +39,21 @@ public class ClusterConsumer {
 
         while (true){
             ConsumerRecords<Integer, Double> records = consumer.poll(Duration.ofSeconds(1));
+            int count = 0;
 
             for (ConsumerRecord<Integer, Double> record : records) {
                 // System.out.print("KELOS.Cluster: " + record.key() + ", Size = " + record.value().size + " Centroid at [");
                 System.out.print("\n KELOS.Cluster: " + record.key() + ", Density = " + record.value());
 //
+                count ++;
 //                for (double value : record.value().centroid){
 //                    System.out.print("" + value + ", ");
 //                }
 //
 //                System.out.println("]");
             }
+
+            System.out.print("\n Cluster count: " + count);
         }
     }
 }
