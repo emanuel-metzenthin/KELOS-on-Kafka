@@ -1,9 +1,11 @@
 package KELOS;
 
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Properties;
 
+import KELOS.Serdes.ArrayListDeserializer;
 import KELOS.Serdes.ClusterDeserializer;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
@@ -30,20 +32,21 @@ public class ClusterConsumer {
         props.put(ConsumerConfig.AUTO_COMMIT_INTERVAL_MS_CONFIG, "1000");
         props.put(ConsumerConfig.SESSION_TIMEOUT_MS_CONFIG, "30000");
         props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, IntegerDeserializer.class.getName());
-        props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, DoubleDeserializer.class.getName());
+        props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, ArrayListDeserializer.class.getName());
         props.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
 
-        KafkaConsumer<Integer, Double> consumer = new KafkaConsumer<>(props);
+        KafkaConsumer<Integer, ArrayList<Double>> consumer = new KafkaConsumer<>(props);
 
         consumer.subscribe(Collections.singletonList(DENSITIES_TOPIC));
 
         while (true){
-            ConsumerRecords<Integer, Double> records = consumer.poll(Duration.ofSeconds(1));
+            ConsumerRecords<Integer, ArrayList<Double>> records = consumer.poll(Duration.ofSeconds(1));
             int count = 0;
 
-            for (ConsumerRecord<Integer, Double> record : records) {
+            for (ConsumerRecord<Integer, ArrayList<Double>> record : records) {
                 // System.out.print("KELOS.Cluster: " + record.key() + ", Size = " + record.value().size + " Centroid at [");
-                System.out.print("\n KELOS.Cluster: " + record.key() + ", Density = " + record.value());
+                System.out.print("\n KELOS.Cluster: " + record.key() + ", Density = " + record.value().get(0) + ", " +
+                        record.value().get(1) + ", "  + record.value().get(2));
 //
                 count ++;
 //                for (double value : record.value().centroid){
@@ -53,7 +56,7 @@ public class ClusterConsumer {
 //                System.out.println("]");
             }
 
-            System.out.print("\n Cluster count: " + count);
+            // System.out.print("\n Cluster count: " + count);
         }
     }
 }

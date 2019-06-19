@@ -102,7 +102,7 @@ public class DensityEstimationProcessorSupplier implements ProcessorSupplier<Int
                         double radius = Main.DISTANCE_THRESHOLD;
                         productKernel *= new GaussianKernel(dimensionBandwidths.get(j)).computeDensity(difference);
                         minProductKernel *= new GaussianKernel(dimensionBandwidths.get(j)).computeDensity(difference + radius);
-                        maxProductKernel *= new GaussianKernel(dimensionBandwidths.get(j)).computeDensity(difference - radius);
+                        maxProductKernel *= new GaussianKernel(dimensionBandwidths.get(j)).computeDensity(Math.max(0, difference - radius));
                     }
 
                     density += productKernel * clusterWeights.get(i);
