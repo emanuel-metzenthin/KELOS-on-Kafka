@@ -35,15 +35,16 @@ public class ClusteringProcessorSupplier implements ProcessorSupplier<Integer, A
                 this.context.schedule(WINDOW_TIME, PunctuationType.STREAM_TIME, timestamp -> {
                     for(KeyValueIterator<Integer, Cluster> i = this.tempClusters.all(); i.hasNext();) {
                         KeyValue<Integer, Cluster> cluster = i.next();
+                        cluster.value.updateMetrics();
                         context.forward(cluster.key, cluster.value);
                     }
 
                     context.commit();
 
-                    // Clear all meta data in cluster store, but keep centroids for distance computation
+                    // Initialize cluster with old metrics for stability
                     for(KeyValueIterator<Integer, Cluster> i = clusters.all(); i.hasNext();) {
                         KeyValue<Integer, Cluster> cluster = i.next();
-                        Cluster emptyCluster = new Cluster(cluster.value.centroid.length, K);
+                        Cluster emptyCluster = new Cluster(cluster.value, K);
                         emptyCluster.centroid = cluster.value.centroid;
 
                         this.tempClusters.put(cluster.key, emptyCluster);

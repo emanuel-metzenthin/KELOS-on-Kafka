@@ -22,7 +22,7 @@ public class Main {
     public static final String CLUSTER_TOPIC = "clusters";
     public static final String DENSITIES_TOPIC = "densities";
     public static final int AGGREGATION_WINDOWS = 3;
-    public static final double DISTANCE_THRESHOLD = 2;
+    public static final double DISTANCE_THRESHOLD = 5;
     public static final Duration WINDOW_TIME = Duration.ofSeconds(1);
     public static final int K = 5;
 
@@ -82,7 +82,7 @@ public class Main {
 
         builder.addProcessor("DensityEstimator", new DensityEstimationProcessorSupplier(), "KNNProcessor");
 
-        builder.addSink("Densities", DENSITIES_TOPIC, new IntegerSerializer(), new DoubleSerializer(), "DensityEstimator");
+        builder.addSink("Densities", DENSITIES_TOPIC, new IntegerSerializer(), new ArrayListSerializer(), "DensityEstimator");
 
         shutdown(builder, props);
     }

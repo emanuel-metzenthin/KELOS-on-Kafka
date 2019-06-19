@@ -13,6 +13,9 @@ public class Cluster {
     public double[] maximums;
     public int[] knnIds;
 
+    public int oldSize;
+    public double[] oldLinearSums;
+
     public Cluster(int column_count, int k){
         this.size = 0;
         this.centroid = new double[column_count];
@@ -20,6 +23,18 @@ public class Cluster {
         this.minimums = new double[column_count];
         this.maximums = new double[column_count];
         this.knnIds = new int[k];
+        this.oldLinearSums = new double[column_count];
+        this.oldSize = 0;
+    }
+
+    public Cluster(Cluster cluster, int K){
+        this.size = oldSize = cluster.size;
+        this.centroid = new double[cluster.centroid.length];
+        this.linearSums = Arrays.copyOf(cluster.linearSums, cluster.linearSums.length);
+        this.oldLinearSums = cluster.linearSums;
+        this.minimums = new double[cluster.centroid.length];
+        this.maximums = new double[cluster.centroid.length];
+        this.knnIds = new int[K];
     }
 
     public Cluster(ArrayList<Double> record, int k){
@@ -31,6 +46,8 @@ public class Cluster {
         this.maximums = recordArray;
         this.size = 1;
         this.knnIds = new int[k];
+        this.oldLinearSums = new double[record.size()];
+        this.oldSize = 0;
     }
 
     public double distance(ArrayList<Double> record) {
@@ -114,6 +131,14 @@ public class Cluster {
         public int compare(Integer index1, Integer index2)
         {
             return this.hashmap.get(index1).compareTo(this.hashmap.get(index2));
+        }
+    }
+
+    public void updateMetrics() {
+        this.size -= this.oldSize;
+
+        for(int i = 0; i < this.oldLinearSums.length; i++) {
+            this.linearSums[i] -= this.oldLinearSums[i];
         }
     }
 }

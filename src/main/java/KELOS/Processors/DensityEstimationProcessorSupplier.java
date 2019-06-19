@@ -2,12 +2,14 @@ package KELOS.Processors;
 
 import KELOS.Cluster;
 import KELOS.GaussianKernel;
+import KELOS.Main;
 import org.apache.kafka.streams.processor.Processor;
 import org.apache.kafka.streams.processor.ProcessorContext;
 import org.apache.kafka.streams.processor.ProcessorSupplier;
 import org.apache.kafka.streams.state.KeyValueStore;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 
 public class DensityEstimationProcessorSupplier implements ProcessorSupplier<Integer, Cluster> {
     /*
@@ -45,7 +47,6 @@ public class DensityEstimationProcessorSupplier implements ProcessorSupplier<Int
                 ArrayList<Double> clusterWeights = new ArrayList<>();
 
                 int totalSize = kNNs.stream().mapToInt(cl -> cl.size).sum();
-
 
                 for(Cluster c : kNNs) {
                     clusterWeights.add((double) c.size / totalSize);
@@ -88,19 +89,28 @@ public class DensityEstimationProcessorSupplier implements ProcessorSupplier<Int
                 }
 
                 double density = 0;
+                double minDensity = 0;
+                double maxDensity = 0;
 
                 for(int i = 0; i < k; i++) {
                     double productKernel = 1;
+                    double minProductKernel = 1;
+                    double maxProductKernel = 1;
 
                     for(int j = 0; j < d; j++) {
-                        double difference = Math.abs(cluster.centroid[j] - kNNs.get(i).centroid[j]);
+                        double difference = cluster.distance(kNNs.get(i));
+                        double radius = Main.DISTANCE_THRESHOLD;
                         productKernel *= new GaussianKernel(dimensionBandwidths.get(j)).computeDensity(difference);
+                        minProductKernel *= new GaussianKernel(dimensionBandwidths.get(j)).computeDensity(difference + radius);
+                        maxProductKernel *= new GaussianKernel(dimensionBandwidths.get(j)).computeDensity(difference - radius);
                     }
 
                     density += productKernel * clusterWeights.get(i);
+                    minDensity += minProductKernel * clusterWeights.get(i);
+                    maxDensity += maxProductKernel * clusterWeights.get(i);
                 }
 
-                this.context.forward(key, density);
+                this.context.forward(key, new ArrayList<>(Arrays.asList(density, minDensity, maxDensity)));
             }
 
             @Override
