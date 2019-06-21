@@ -2,7 +2,6 @@ package KELOS.Processors;
 
 import KELOS.Cluster;
 import KELOS.GaussianKernel;
-import KELOS.Main;
 import org.apache.kafka.streams.processor.Processor;
 import org.apache.kafka.streams.processor.ProcessorContext;
 import org.apache.kafka.streams.processor.ProcessorSupplier;
@@ -98,11 +97,11 @@ public class DensityEstimationProcessorSupplier implements ProcessorSupplier<Int
                     double maxProductKernel = 1;
 
                     for(int j = 0; j < d; j++) {
-                        double difference = cluster.distance(kNNs.get(i));
-                        double radius = Main.DISTANCE_THRESHOLD;
+                        double difference = Math.abs(cluster.centroid[j] - kNNs.get(i).centroid[j]);
+                        double radius = cluster.maximums[j] - cluster.minimums[j];
                         productKernel *= new GaussianKernel(dimensionBandwidths.get(j)).computeDensity(difference);
                         minProductKernel *= new GaussianKernel(dimensionBandwidths.get(j)).computeDensity(difference + radius);
-                        maxProductKernel *= new GaussianKernel(dimensionBandwidths.get(j)).computeDensity(Math.max(0, difference - radius));
+                        maxProductKernel *= new GaussianKernel(dimensionBandwidths.get(j)).computeDensity(difference - radius);
                     }
 
                     density += productKernel * clusterWeights.get(i);
