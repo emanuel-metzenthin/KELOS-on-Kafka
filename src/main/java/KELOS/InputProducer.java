@@ -58,7 +58,7 @@ public class InputProducer {
                     }
                 }
 
-                timestamp += 100;
+                timestamp += 10;
 
                 producer.send(new ProducerRecord<>(InputProducer.TOPIC, 0, timestamp, 0, numberRecord));
             }

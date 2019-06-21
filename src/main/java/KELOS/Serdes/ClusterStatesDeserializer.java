@@ -26,7 +26,7 @@ public class ClusterStatesDeserializer implements Deserializer<ArrayList<Cluster
             int dimensions = in.readInt();
             int k = in.readInt();
             bais.reset();
-            int clusterSize = 4 + 4 + 4 + 4 * 8 * dimensions + 4 * k; // Size of one cluster object in bytes
+            int clusterSize = 4 + 4 + 4 + 4 + 5 * 8 * dimensions + 4 * k; // Size of one cluster object in bytes
             int clusterCount = bais.available() / clusterSize;
 
             ArrayList<Cluster> clusters = new ArrayList<>();

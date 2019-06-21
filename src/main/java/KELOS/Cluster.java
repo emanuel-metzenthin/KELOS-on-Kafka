@@ -28,7 +28,7 @@ public class Cluster {
     }
 
     public Cluster(Cluster cluster, int K){
-        this.size = oldSize = cluster.size;
+        this.size = this.oldSize = cluster.size;
         this.centroid = new double[cluster.centroid.length];
         this.linearSums = Arrays.copyOf(cluster.linearSums, cluster.linearSums.length);
         this.oldLinearSums = cluster.linearSums;
