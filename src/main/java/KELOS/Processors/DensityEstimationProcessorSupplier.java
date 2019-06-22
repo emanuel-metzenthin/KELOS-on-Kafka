@@ -98,10 +98,12 @@ public class DensityEstimationProcessorSupplier implements ProcessorSupplier<Int
 
                     for(int j = 0; j < d; j++) {
                         double difference = Math.abs(cluster.centroid[j] - kNNs.get(i).centroid[j]);
-                        double radius = cluster.maximums[j] - cluster.minimums[j];
+                        double distToMin = cluster.centroid[j] - cluster.minimums[j];
+                        double distToMax = cluster.maximums[j] - cluster.centroid[j];
+                        double radius = Math.max(distToMin, distToMax);
                         productKernel *= new GaussianKernel(dimensionBandwidths.get(j)).computeDensity(difference);
                         minProductKernel *= new GaussianKernel(dimensionBandwidths.get(j)).computeDensity(difference + radius);
-                        maxProductKernel *= new GaussianKernel(dimensionBandwidths.get(j)).computeDensity(difference - radius);
+                        maxProductKernel *= new GaussianKernel(dimensionBandwidths.get(j)).computeDensity(Math.max(difference - radius, 0));
                     }
 
                     density += productKernel * clusterWeights.get(i);
