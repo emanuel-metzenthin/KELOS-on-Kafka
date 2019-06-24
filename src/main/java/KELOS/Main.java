@@ -84,7 +84,7 @@ public class Main {
 
         builder.addProcessor("DensityEstimator", new DensityEstimationProcessorSupplier(), "KNNProcessor");
 
-        builder.addSink("ClusterDensitySink", DENSITIES_TOPIC, new IntegerSerializer(), new ArrayListSerializer(), "DensityEstimator");
+        builder.addSink("ClusterDensitySink", DENSITIES_TOPIC, new IntegerSerializer(), new ClusterSerializer(), "DensityEstimator");
 
         shutdown(builder, props);
     }

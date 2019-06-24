@@ -16,6 +16,10 @@ public class Cluster {
     public int oldSize;
     public double[] oldLinearSums;
 
+    public double density;
+    public double minDensityBound;
+    public double maxDensityBound;
+
     public Cluster(int column_count, int k){
         this.size = 0;
         this.centroid = new double[column_count];
@@ -25,6 +29,10 @@ public class Cluster {
         this.knnIds = new int[k];
         this.oldLinearSums = new double[column_count];
         this.oldSize = 0;
+
+        density = 0;
+        minDensityBound = 0;
+        maxDensityBound = 0;
     }
 
     public Cluster(Cluster cluster, int K){
@@ -35,6 +43,10 @@ public class Cluster {
         this.minimums = new double[cluster.centroid.length];
         this.maximums = new double[cluster.centroid.length];
         this.knnIds = new int[K];
+
+        density = 0;
+        minDensityBound = 0;
+        maxDensityBound = 0;
     }
 
     public Cluster(ArrayList<Double> record, int k){
@@ -48,6 +60,10 @@ public class Cluster {
         this.knnIds = new int[k];
         this.oldLinearSums = new double[record.size()];
         this.oldSize = 0;
+
+        density = 0;
+        minDensityBound = 0;
+        maxDensityBound = 0;
     }
 
     public double distance(ArrayList<Double> record) {

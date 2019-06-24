@@ -2,6 +2,7 @@ package KELOS.Processors;
 
 import KELOS.Cluster;
 import KELOS.GaussianKernel;
+import org.apache.commons.math3.util.Pair;
 import org.apache.kafka.streams.processor.Processor;
 import org.apache.kafka.streams.processor.ProcessorContext;
 import org.apache.kafka.streams.processor.ProcessorSupplier;
@@ -87,9 +88,9 @@ public class DensityEstimationProcessorSupplier implements ProcessorSupplier<Int
                     dimensionBandwidths.add(bandwidth);
                 }
 
-                double density = 0;
-                double minDensity = 0;
-                double maxDensity = 0;
+                cluster.density = 0;
+                cluster.minDensityBound = 0;
+                cluster.maxDensityBound = 0;
 
                 for(int i = 0; i < k; i++) {
                     double productKernel = 1;
@@ -106,12 +107,12 @@ public class DensityEstimationProcessorSupplier implements ProcessorSupplier<Int
                         maxProductKernel *= new GaussianKernel(dimensionBandwidths.get(j)).computeDensity(Math.max(difference - radius, 0));
                     }
 
-                    density += productKernel * clusterWeights.get(i);
-                    minDensity += minProductKernel * clusterWeights.get(i);
-                    maxDensity += maxProductKernel * clusterWeights.get(i);
+                    cluster.density += productKernel * clusterWeights.get(i);
+                    cluster.minDensityBound += minProductKernel * clusterWeights.get(i);
+                    cluster.maxDensityBound += maxProductKernel * clusterWeights.get(i);
                 }
 
-                this.context.forward(key, new ArrayList<>(Arrays.asList(density, minDensity, maxDensity)));
+                this.context.forward(key, cluster);
             }
 
             @Override
