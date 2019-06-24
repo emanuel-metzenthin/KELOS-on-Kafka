@@ -30,6 +30,9 @@ public class ClusterDeserializer implements Deserializer<Cluster> {
             Cluster c = new Cluster(dimensions, k);
             c.size = in.readInt();
             c.oldSize = in.readInt();
+            c.density = in.readDouble();
+            c.minDensityBound = in.readDouble();
+            c.maxDensityBound = in.readDouble();
 
 
             for(int i = 0; i < dimensions; i++){

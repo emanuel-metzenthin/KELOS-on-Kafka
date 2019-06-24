@@ -29,6 +29,9 @@ public class ClusterSerializer implements Serializer<Cluster> {
             out.writeInt(cluster.knnIds.length);
             out.writeInt(cluster.size);
             out.writeInt(cluster.oldSize);
+            out.writeDouble(cluster.density);
+            out.writeDouble(cluster.minDensityBound);
+            out.writeDouble(cluster.maxDensityBound);
 
             for (double element : cluster.centroid) {
                 out.writeDouble(element);
