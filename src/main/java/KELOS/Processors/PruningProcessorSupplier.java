@@ -33,11 +33,14 @@ public class PruningProcessorSupplier implements ProcessorSupplier<Integer, Clus
         return new Processor<Integer, Cluster>() {
             private ProcessorContext context;
             private KeyValueStore<Integer, Cluster> clusterWithDensities;
+            private KeyValueStore<Integer, Cluster> topNClusters;
 
             @Override
             public void init(ProcessorContext context) {
                 this.context = context;
                 this.clusterWithDensities = (KeyValueStore<Integer, Cluster>) context.getStateStore("ClustersWithDensities");
+                this.topNClusters = (KeyValueStore<Integer, Cluster>) context.getStateStore("TopNClusters");
+
 
                 this.context.schedule(WINDOW_TIME, PunctuationType.STREAM_TIME, timestamp -> {
                     MinMaxPriorityQueue<Triple<Integer, Double, Double>> queue = MinMaxPriorityQueue
@@ -80,12 +83,15 @@ public class PruningProcessorSupplier implements ProcessorSupplier<Integer, Clus
                         }
                     }
 
-                    Iterator <Triple<Integer, Double, Double>> iterator = queue.iterator();
+                    for(KeyValueIterator<Integer, Cluster> i = this.topNClusters.all(); i.hasNext();) {
+                        KeyValue<Integer, Cluster> cluster = i.next();
 
-                    while (iterator.hasNext()){
-                        Triple<Integer, Double, Double> t = iterator.next();
+                        this.topNClusters.delete(cluster.key);
+                    }
 
-                        this.context.forward(t.getLeft(), this.clusterWithDensities.get(t.getLeft()));
+                    for (Triple<Integer, Double, Double> t : queue) {
+                        this.topNClusters.put(t.getLeft(), this.clusterWithDensities.get(t.getLeft()));
+                        // this.context.forward(t.getLeft(), this.clusterWithDensities.get(t.getLeft()));
                     }
 
                     context.commit();

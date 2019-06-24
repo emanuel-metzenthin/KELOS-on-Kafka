@@ -86,13 +86,28 @@ public class Main {
         builder.addProcessor("DensityEstimator", new DensityEstimationProcessorSupplier(), "KNNProcessor");
         builder.addSink("ClusterDensitySink", DENSITIES_TOPIC, new IntegerSerializer(), new ClusterSerializer(), "DensityEstimator");
 
+        builder.addSource("AssignmentSource", CLUSTER_ASSIGNMENT_TOPIC);
         builder.addProcessor("PruningProcessor", new PruningProcessorSupplier(), "DensityEstimator");
+        builder.addProcessor("FilterProcessor", new FilterProcessorSupplier(), "AssignmentSource");
         builder.addStateStore(
                 Stores.keyValueStoreBuilder(
                         Stores.inMemoryKeyValueStore("ClustersWithDensities"),
                         Serdes.Integer(),
                         new ClusterSerde()),
                 "PruningProcessor");
+        builder.addStateStore(
+                Stores.keyValueStoreBuilder(
+                        Stores.inMemoryKeyValueStore("ClusterAssignments"),
+                        Serdes.Integer(),
+                        new ArrayListSerde()),
+                "FilterProcessor");
+        builder.addStateStore(
+                Stores.keyValueStoreBuilder(
+                        Stores.inMemoryKeyValueStore("TopNClusters"),
+                        Serdes.Integer(),
+                        new ClusterSerde()),
+                "PruningProcessor", "FilterProcessor");
+
         builder.addSink("PrunedSink", PRUNED_CLUSTERS_TOPIC, new IntegerSerializer(), new ClusterSerializer(), "PruningProcessor");
 
         shutdown(builder, props);

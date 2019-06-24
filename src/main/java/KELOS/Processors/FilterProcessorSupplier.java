@@ -1,0 +1,62 @@
+package KELOS.Processors;
+
+import KELOS.Cluster;
+import com.google.common.collect.MinMaxPriorityQueue;
+import org.apache.commons.lang3.tuple.Triple;
+import org.apache.kafka.streams.KeyValue;
+import org.apache.kafka.streams.processor.*;
+import org.apache.kafka.streams.state.KeyValueIterator;
+import org.apache.kafka.streams.state.KeyValueStore;
+
+
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.Iterator;
+
+import static KELOS.Main.*;
+
+
+public class FilterProcessorSupplier implements ProcessorSupplier<Integer, ArrayList<Double>> {
+    /*
+
+     */
+    @Override
+    public Processor<Integer, ArrayList<Double>> get() {
+        return new Processor<Integer, ArrayList<Double>>() {
+            private ProcessorContext context;
+            private KeyValueStore<Integer, Cluster> topNClusters;
+            private KeyValueStore<Integer, ArrayList<Double>> windowPoints;
+
+
+            @Override
+            public void init(ProcessorContext context) {
+                this.context = context;
+                this.topNClusters = (KeyValueStore<Integer, Cluster>) context.getStateStore("TopNClusters");
+                this.windowPoints = (KeyValueStore<Integer, ArrayList<Double>>) context.getStateStore("ClusterAssignments");
+
+                this.context.schedule(WINDOW_TIME, PunctuationType.STREAM_TIME, timestamp -> {
+                    for(KeyValueIterator<Integer, ArrayList<Double>> i = this.windowPoints.all(); i.hasNext();) {
+                        KeyValue<Integer, ArrayList<Double>> point = i.next();
+
+                        Cluster cluster = this.topNClusters.get(point.key);
+
+                        if (cluster != null){
+                            this.context.forward(point.key, point.value);
+                        }
+                    }
+                });
+            }
+
+            /*
+
+             */
+            @Override
+            public void process(Integer key, ArrayList<Double> value) {
+                this.windowPoints.put(key, value);
+            }
+
+            @Override
+            public void close() { }
+        };
+    }
+}
