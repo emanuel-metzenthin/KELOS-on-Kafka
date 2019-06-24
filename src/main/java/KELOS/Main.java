@@ -2,7 +2,6 @@ package KELOS;
 
 import KELOS.Processors.*;
 import KELOS.Serdes.*;
-import org.apache.kafka.common.serialization.DoubleSerializer;
 import org.apache.kafka.common.serialization.IntegerDeserializer;
 import org.apache.kafka.common.serialization.IntegerSerializer;
 import org.apache.kafka.common.serialization.Serdes;
@@ -22,10 +21,12 @@ public class Main {
     public static final String CLUSTER_ASSIGNMENT_TOPIC = "cluster-assignments";
     public static final String CLUSTER_TOPIC = "clusters";
     public static final String DENSITIES_TOPIC = "densities";
+    public static final String PRUNED_CLUSTERS_TOPIC = "pruned_clusters";
     public static final int AGGREGATION_WINDOWS = 3;
     public static final double DISTANCE_THRESHOLD = 0.5;
     public static final Duration WINDOW_TIME = Duration.ofSeconds(1);
     public static final int K = 5;
+    public static final int N = 5;
 
     public static void main(final String[] args) {
         final Properties props = new Properties();
@@ -83,8 +84,16 @@ public class Main {
                 "KNNProcessor");
 
         builder.addProcessor("DensityEstimator", new DensityEstimationProcessorSupplier(), "KNNProcessor");
-
         builder.addSink("ClusterDensitySink", DENSITIES_TOPIC, new IntegerSerializer(), new ClusterSerializer(), "DensityEstimator");
+
+        builder.addProcessor("PruningProcessor", new PruningProcessorSupplier(), "DensityEstimator");
+        builder.addStateStore(
+                Stores.keyValueStoreBuilder(
+                        Stores.inMemoryKeyValueStore("ClustersWithDensities"),
+                        Serdes.Integer(),
+                        new ClusterSerde()),
+                "PruningProcessor");
+        builder.addSink("PrunedSink", PRUNED_CLUSTERS_TOPIC, new IntegerSerializer(), new ClusterSerializer(), "PruningProcessor");
 
         shutdown(builder, props);
     }

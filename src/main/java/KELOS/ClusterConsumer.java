@@ -14,8 +14,7 @@ import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.common.serialization.DoubleDeserializer;
 import org.apache.kafka.common.serialization.IntegerDeserializer;
 
-import static KELOS.Main.CLUSTER_TOPIC;
-import static KELOS.Main.DENSITIES_TOPIC;
+import static KELOS.Main.*;
 
 public class ClusterConsumer {
 
@@ -37,7 +36,7 @@ public class ClusterConsumer {
 
         KafkaConsumer<Integer, Cluster> consumer = new KafkaConsumer<>(props);
 
-        consumer.subscribe(Collections.singletonList(DENSITIES_TOPIC));
+        consumer.subscribe(Collections.singletonList(PRUNED_CLUSTERS_TOPIC));
 
         while (true){
             ConsumerRecords<Integer, Cluster> records = consumer.poll(Duration.ofSeconds(1));
