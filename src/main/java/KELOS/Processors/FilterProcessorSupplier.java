@@ -35,6 +35,12 @@ public class FilterProcessorSupplier implements ProcessorSupplier<Integer, Array
                 this.windowPoints = (KeyValueStore<Integer, ArrayList<Double>>) context.getStateStore("ClusterAssignments");
 
                 this.context.schedule(WINDOW_TIME, PunctuationType.STREAM_TIME, timestamp -> {
+                    for(KeyValueIterator<Integer, Cluster> i = this.topNClusters.all(); i.hasNext();) {
+                        KeyValue<Integer, Cluster> cluster = i.next();
+
+                        System.out.println("Cluster: " + cluster.key);
+                    }
+
                     for(KeyValueIterator<Integer, ArrayList<Double>> i = this.windowPoints.all(); i.hasNext();) {
                         KeyValue<Integer, ArrayList<Double>> point = i.next();
 
@@ -42,7 +48,10 @@ public class FilterProcessorSupplier implements ProcessorSupplier<Integer, Array
 
                         if (cluster != null){
                             this.context.forward(point.key, point.value);
+                            System.out.println(point.key);
                         }
+
+                        this.windowPoints.delete(point.key);
                     }
                 });
             }

@@ -76,9 +76,10 @@ public class Main {
 
         builder.addProcessor("KNNProcessor", new KNearestClusterProcessorSupplier(), "AggregationProcessor");
 
+        Duration retention =  Duration.ofSeconds(AGGREGATION_WINDOWS * WINDOW_TIME.getSeconds());
         builder.addStateStore(
-                Stores.keyValueStoreBuilder(
-                        Stores.inMemoryKeyValueStore("ClusterBuffer"),
+                Stores.windowStoreBuilder(
+                        Stores.persistentWindowStore("ClusterBuffer", retention, WINDOW_TIME, false),
                         Serdes.Integer(),
                         new ClusterSerde()),
                 "KNNProcessor");

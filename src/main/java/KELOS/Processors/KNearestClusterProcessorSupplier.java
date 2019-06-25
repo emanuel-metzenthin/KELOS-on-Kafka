@@ -21,16 +21,16 @@ public class KNearestClusterProcessorSupplier implements ProcessorSupplier<Integ
     public Processor<Integer, Cluster> get() {
         return new Processor<Integer, Cluster>() {
             private ProcessorContext context;
-            private KeyValueStore<Integer, Cluster> clusters;
+            private WindowStore<Integer, Cluster> clusters;
 
             @Override
             public void init(ProcessorContext context) {
                 this.context = context;
-                this.clusters = (KeyValueStore<Integer, Cluster>) context.getStateStore("ClusterBuffer");
+                this.clusters = (WindowStore<Integer, Cluster>) context.getStateStore("ClusterBuffer");
 
                 this.context.schedule(WINDOW_TIME, PunctuationType.STREAM_TIME, timestamp -> {
-                    for(KeyValueIterator<Integer, Cluster> i = this.clusters.all(); i.hasNext();) {
-                        KeyValue<Integer, Cluster> cluster = i.next();
+                    for(KeyValueIterator<Windowed<Integer>, Cluster> i = this.clusters.all(); i.hasNext();) {
+                        KeyValue<Windowed<Integer>, Cluster> cluster = i.next();
 
                         cluster.value.calculateKNearestNeighbors(this.clusters.all());
 
