@@ -29,12 +29,14 @@ public class KNearestClusterProcessorSupplier implements ProcessorSupplier<Integ
                 this.clusters = (WindowStore<Integer, Cluster>) context.getStateStore("ClusterBuffer");
 
                 this.context.schedule(WINDOW_TIME, PunctuationType.STREAM_TIME, timestamp -> {
+                    System.out.println("New Window");
                     for(KeyValueIterator<Windowed<Integer>, Cluster> i = this.clusters.all(); i.hasNext();) {
                         KeyValue<Windowed<Integer>, Cluster> cluster = i.next();
+                        System.out.println("Cluster: " + cluster.key.key());
 
                         cluster.value.calculateKNearestNeighbors(this.clusters.all());
 
-                        context.forward(cluster.key, cluster.value);
+                        context.forward(cluster.key.key(), cluster.value);
                     }
 
                     context.commit();

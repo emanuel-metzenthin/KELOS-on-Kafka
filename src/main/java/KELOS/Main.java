@@ -79,7 +79,7 @@ public class Main {
         Duration retention =  Duration.ofSeconds(AGGREGATION_WINDOWS * WINDOW_TIME.getSeconds());
         builder.addStateStore(
                 Stores.windowStoreBuilder(
-                        Stores.persistentWindowStore("ClusterBuffer", retention, WINDOW_TIME, false),
+                        Stores.persistentWindowStore("ClusterBuffer", retention, retention, false),
                         Serdes.Integer(),
                         new ClusterSerde()),
                 "KNNProcessor");
