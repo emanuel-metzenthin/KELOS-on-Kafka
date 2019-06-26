@@ -80,9 +80,11 @@ public class ClusteringProcessorSupplier implements ProcessorSupplier<Integer, A
                     cluster.addRecord(value);
                     this.tempClusters.put(clusterIdx, cluster);
                     this.context.forward(clusterIdx, value, To.child("ClusterAssignmentSink"));
+                    this.context.forward(clusterIdx, value, To.child("FilterProcessor"));
                 } else {
                     this.tempClusters.put(highestCluster + 1, new Cluster(value, K));
                     this.context.forward(highestCluster + 1, value, To.child("ClusterAssignmentSink"));
+                    this.context.forward(highestCluster + 1, value, To.child("FilterProcessor"));
                 }
             }
 

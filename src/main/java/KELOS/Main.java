@@ -79,7 +79,7 @@ public class Main {
         Duration retention =  Duration.ofSeconds(AGGREGATION_WINDOWS * WINDOW_TIME.getSeconds());
         builder.addStateStore(
                 Stores.windowStoreBuilder(
-                        Stores.persistentWindowStore("ClusterBuffer", retention, WINDOW_TIME, false),
+                        Stores.persistentWindowStore("ClusterBuffer", retention, retention, false),
                         Serdes.Integer(),
                         new ClusterSerde()),
                 "KNNProcessor");
@@ -87,9 +87,8 @@ public class Main {
         builder.addProcessor("DensityEstimator", new DensityEstimationProcessorSupplier(), "KNNProcessor");
         builder.addSink("ClusterDensitySink", DENSITIES_TOPIC, new IntegerSerializer(), new ClusterSerializer(), "DensityEstimator");
 
-        builder.addSource("AssignmentSource", CLUSTER_ASSIGNMENT_TOPIC);
         builder.addProcessor("PruningProcessor", new PruningProcessorSupplier(), "DensityEstimator");
-        builder.addProcessor("FilterProcessor", new FilterProcessorSupplier(), "AssignmentSource");
+        builder.addProcessor("FilterProcessor", new FilterProcessorSupplier(), "ClusteringProcessor");
         builder.addStateStore(
                 Stores.keyValueStoreBuilder(
                         Stores.inMemoryKeyValueStore("ClustersWithDensities"),
