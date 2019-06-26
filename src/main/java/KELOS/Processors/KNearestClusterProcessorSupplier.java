@@ -21,22 +21,22 @@ public class KNearestClusterProcessorSupplier implements ProcessorSupplier<Integ
     public Processor<Integer, Cluster> get() {
         return new Processor<Integer, Cluster>() {
             private ProcessorContext context;
-            private WindowStore<Integer, Cluster> clusters;
+            private KeyValueStore<Integer, Cluster> clusters;
 
             @Override
             public void init(ProcessorContext context) {
                 this.context = context;
-                this.clusters = (WindowStore<Integer, Cluster>) context.getStateStore("ClusterBuffer");
+                this.clusters = (KeyValueStore<Integer, Cluster>) context.getStateStore("Clusters");
 
                 this.context.schedule(WINDOW_TIME, PunctuationType.STREAM_TIME, timestamp -> {
                     System.out.println("New Window");
-                    for(KeyValueIterator<Windowed<Integer>, Cluster> i = this.clusters.all(); i.hasNext();) {
-                        KeyValue<Windowed<Integer>, Cluster> cluster = i.next();
-                        System.out.println("Cluster: " + cluster.key.key());
+                    for(KeyValueIterator<Integer, Cluster> i = this.clusters.all(); i.hasNext();) {
+                        KeyValue<Integer, Cluster> cluster = i.next();
+                        System.out.println("Cluster: " + cluster.key);
 
                         cluster.value.calculateKNearestNeighbors(this.clusters.all());
 
-                        context.forward(cluster.key.key(), cluster.value);
+                        context.forward(cluster.key, cluster.value);
                     }
 
                     context.commit();
@@ -45,7 +45,7 @@ public class KNearestClusterProcessorSupplier implements ProcessorSupplier<Integ
 
             @Override
             public void process(Integer key, Cluster value) {
-                this.clusters.put(key, value);
+
             }
 
             @Override
