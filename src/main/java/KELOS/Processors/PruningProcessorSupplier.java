@@ -91,7 +91,6 @@ public class PruningProcessorSupplier implements ProcessorSupplier<Integer, Clus
 
                     for (Triple<Integer, Double, Double> t : queue) {
                         this.topNClusters.put(t.getLeft(), this.clusterWithDensities.get(t.getLeft()));
-                        // this.context.forward(t.getLeft(), this.clusterWithDensities.get(t.getLeft()));
                     }
 
                     context.commit();
