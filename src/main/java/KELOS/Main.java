@@ -119,7 +119,7 @@ public class Main {
 
         builder.addProcessor("KNNPointsProcessor", new KNearestClusterProcessorSupplier("PointBuffer"), "FilterProcessor");
 
-        builder.addProcessor("PointDensityEstimatorProcessor", new DensityEstimationProcessorSupplier(), "KNNPointsProcessor");
+        builder.addProcessor("PointDensityEstimatorProcessor", new DensityEstimationProcessorSupplier("PointDensityBuffer"), "KNNPointsProcessor");
 
         builder.addProcessor("PointPruningProcessor", new PointPruningProcessorSupplier(), "PointDensityEstimatorProcessor");
 

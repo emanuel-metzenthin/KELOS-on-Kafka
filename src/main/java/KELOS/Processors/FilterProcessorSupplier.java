@@ -49,7 +49,7 @@ public class FilterProcessorSupplier implements ProcessorSupplier<Integer, Array
                         if (cluster != null){
                             // Workaround to reuse densityEstimator
                             Cluster singlePointCluster = new Cluster(point.value, point.value.size());
-                            this.context.forward(point.key, point.value);
+                            this.context.forward(point.key, singlePointCluster);
                             System.out.println(point.key);
                         }
 

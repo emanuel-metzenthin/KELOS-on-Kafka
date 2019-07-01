@@ -11,6 +11,7 @@ import org.apache.kafka.streams.state.KeyValueStore;
 
 import java.lang.reflect.Array;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Comparator;
 
 import static KELOS.Main.*;
@@ -53,13 +54,18 @@ public class PointPruningProcessorSupplier implements ProcessorSupplier<Integer,
                         double knnMean = 0;
                         double knnVariance = 0;
 
+                        ArrayList<Integer> existingKnnIds = new ArrayList<>();
+
                         for (int id : point.value.knnIds){
-                            knnMean += this.pointWithDensities.get(id).density;
+                            if (this.pointWithDensities.get(id) != null) {
+                                existingKnnIds.add(id);
+                                knnMean += this.pointWithDensities.get(id).density;
+                            }
                         }
 
-                        knnMean /= point.value.knnIds.length;
+                        knnMean /= existingKnnIds.size();
 
-                        for (int id : point.value.knnIds){
+                        for (int id : existingKnnIds){
                             knnVariance += Math.pow((this.pointWithDensities.get(id).density - knnMean), 2);
                         }
 
@@ -67,7 +73,12 @@ public class PointPruningProcessorSupplier implements ProcessorSupplier<Integer,
 
                         double klome = (point.value.minDensityBound - knnMean) / knnStddev;
 
-                        Pair pointWithKlome = Pair.of(point.value.centroid, klome);
+                        ArrayList<Double> pointArrayList = new ArrayList<>();
+                        for(int k=0; k<point.value.centroid.length; k++) {
+                            pointArrayList.add(point.value.centroid[k]);
+                        }
+
+                        Pair pointWithKlome = Pair.of(pointArrayList, klome);
 
                         queue.add(pointWithKlome);
                     }
