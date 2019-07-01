@@ -36,7 +36,7 @@ public class ClusterConsumer {
 
         KafkaConsumer<Integer, Cluster> consumer = new KafkaConsumer<>(props);
 
-        consumer.subscribe(Collections.singletonList(PRUNED_CLUSTERS_TOPIC));
+        consumer.subscribe(Collections.singletonList(DENSITIES_TOPIC));
 
         while (true){
             ConsumerRecords<Integer, Cluster> records = consumer.poll(Duration.ofSeconds(1));

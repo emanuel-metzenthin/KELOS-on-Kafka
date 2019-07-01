@@ -116,15 +116,17 @@ public class Cluster {
         }
     }
 
-    public void calculateKNearestNeighbors(ArrayList<KeyValue<Integer, Cluster>> clusters){
+    public void calculateKNearestNeighbors(HashMap<Integer, Cluster> clusters){
         HashMap<Integer, Double> distances = new HashMap<>();
         ArrayList<Integer> keys = new ArrayList<>();
 
-        for (KeyValue<Integer, Cluster> cluster : clusters) {
-            double distance = this.distance(cluster.value);
+        for (Integer i : clusters.keySet()){
+            Cluster cluster = clusters.get(i);
 
-            distances.put(cluster.key, distance);
-            keys.add(cluster.key);
+            double distance = this.distance(cluster);
+
+            distances.put(i, distance);
+            keys.add(i);
         }
 
         keys.sort(new ArrayIndexComparator(distances));

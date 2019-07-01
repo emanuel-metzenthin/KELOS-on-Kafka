@@ -12,6 +12,7 @@ import org.apache.kafka.streams.state.KeyValueStore;
 import org.apache.kafka.streams.state.WindowStore;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 
 import static KELOS.Main.WINDOW_TIME;
 
@@ -23,33 +24,37 @@ public class KNearestClusterProcessorSupplier implements ProcessorSupplier<Integ
     public Processor<Integer, Cluster> get() {
         return new Processor<Integer, Cluster>() {
             private ProcessorContext context;
-            private KeyValueStore<Integer, Cluster> clusters;
+            private WindowStore<Integer, Cluster> clusters;
 
             @Override
             public void init(ProcessorContext context) {
                 this.context = context;
-                this.clusters = (KeyValueStore<Integer, Cluster>) context.getStateStore("Clusters");
+                this.clusters = (WindowStore<Integer, Cluster>) context.getStateStore("ClusterBuffer");
 
                 this.context.schedule(WINDOW_TIME, PunctuationType.STREAM_TIME, timestamp -> {
-                    ArrayList<KeyValue<Integer, Cluster>> clusterList = new ArrayList<>();
+                    System.out.println("New Window");
 
-                    for(KeyValueIterator<Integer, Cluster> i = this.clusters.all(); i.hasNext();) {
-                        clusterList.add(i.next());
+                    HashMap<Integer, Cluster> uniqueClusters = new HashMap<>();
+                    for(KeyValueIterator<Windowed<Integer>, Cluster> i = this.clusters.all(); i.hasNext();) {
+                        KeyValue<Windowed<Integer>, Cluster> cluster = i.next();
+                        uniqueClusters.put(cluster.key.key(), cluster.value);
                     }
 
-                    for(KeyValue<Integer, Cluster> cluster : clusterList) {
-                        cluster.value.calculateKNearestNeighbors(clusterList);
+                    for (Integer i : uniqueClusters.keySet()){
+                        Cluster cluster = uniqueClusters.get(i);
 
-                        context.forward(cluster.key, cluster.value);
+                        cluster.calculateKNearestNeighbors(uniqueClusters);
+
+                        context.forward(i, cluster);
+                        context.commit();
                     }
-
-                    context.commit();
                 });
             }
 
             @Override
             public void process(Integer key, Cluster value) {
-
+                //if (this.clusters.fetch)
+                this.clusters.put(key, value);
             }
 
             @Override

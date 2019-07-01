@@ -9,6 +9,7 @@ import org.apache.kafka.streams.state.KeyValueIterator;
 import org.apache.kafka.streams.state.KeyValueStore;
 
 
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.Iterator;
 
@@ -55,13 +56,18 @@ public class PruningProcessorSupplier implements ProcessorSupplier<Integer, Clus
                         double knnMean = 0;
                         double knnVariance = 0;
 
+                        ArrayList<Integer> existingKnnIds = new ArrayList<>();
+
                         for (int id : cluster.value.knnIds){
-                            knnMean += this.clusterWithDensities.get(id).density;
+                            if (this.clusterWithDensities.get(id) != null) {
+                                existingKnnIds.add(id);
+                                knnMean += this.clusterWithDensities.get(id).density;
+                            }
                         }
 
-                        knnMean /= cluster.value.knnIds.length;
+                        knnMean /= existingKnnIds.size();
 
-                        for (int id : cluster.value.knnIds){
+                        for (int id : existingKnnIds){
                             knnVariance += Math.pow((this.clusterWithDensities.get(id).density - knnMean), 2);
                         }
 
