@@ -2,6 +2,7 @@ package KELOS;
 
 import KELOS.Processors.*;
 import KELOS.Serdes.*;
+import org.apache.kafka.common.serialization.DoubleSerializer;
 import org.apache.kafka.common.serialization.IntegerDeserializer;
 import org.apache.kafka.common.serialization.IntegerSerializer;
 import org.apache.kafka.common.serialization.Serdes;
@@ -22,6 +23,7 @@ public class Main {
     public static final String CLUSTER_TOPIC = "clusters";
     public static final String DENSITIES_TOPIC = "densities";
     public static final String PRUNED_CLUSTERS_TOPIC = "pruned_clusters";
+    public static final String OUTLIERS_TOPIC = "outliers";
     public static final int AGGREGATION_WINDOWS = 3;
     public static final double DISTANCE_THRESHOLD = 0.5;
     public static final Duration WINDOW_TIME = Duration.ofSeconds(1);
@@ -95,6 +97,7 @@ public class Main {
 
         builder.addProcessor("PruningProcessor", new PruningProcessorSupplier("ClustersWithDensities", "TopNClusters"), "DensityEstimator");
         builder.addProcessor("FilterProcessor", new FilterProcessorSupplier(), "ClusteringProcessor");
+
         builder.addStateStore(
                 Stores.keyValueStoreBuilder(
                         Stores.inMemoryKeyValueStore("ClustersWithDensities"),
@@ -114,7 +117,34 @@ public class Main {
                         new ClusterSerde()),
                 "PruningProcessor", "FilterProcessor");
 
-        builder.addSink("PrunedSink", PRUNED_CLUSTERS_TOPIC, new IntegerSerializer(), new ClusterSerializer(), "PruningProcessor");
+        builder.addProcessor("KNNPointsProcessor", new KNearestClusterProcessorSupplier("PointBuffer"), "FilterProcessor");
+
+        builder.addProcessor("PointDensityEstimatorProcessor", new DensityEstimationProcessorSupplier(), "KNNPointsProcessor");
+
+        builder.addProcessor("PointPruningProcessor", new PointPruningProcessorSupplier(), "PointDensityEstimatorProcessor");
+
+        builder.addStateStore(
+                Stores.windowStoreBuilder(
+                        Stores.persistentWindowStore("PointBuffer", retention, retention, false),
+                        Serdes.Integer(),
+                        new ClusterSerde()),
+                "KNNPointsProcessor");
+
+        builder.addStateStore(
+                Stores.keyValueStoreBuilder(
+                        Stores.inMemoryKeyValueStore("PointDensityBuffer"),
+                        Serdes.Integer(),
+                        new ClusterSerde()),
+                "PointDensityEstimatorProcessor");
+
+        builder.addStateStore(
+                Stores.keyValueStoreBuilder(
+                        Stores.inMemoryKeyValueStore("PointsWithDensities"),
+                        Serdes.Integer(),
+                        new ClusterSerde()),
+                "PointPruningProcessor");
+
+        builder.addSink("Outliers", OUTLIERS_TOPIC, new ArrayListSerializer(), new DoubleSerializer(), "PointPruningProcessor");
 
         shutdown(builder, props);
     }
