@@ -38,7 +38,7 @@ public class FilterProcessorSupplier implements ProcessorSupplier<Integer, Array
                     for(KeyValueIterator<Integer, Cluster> i = this.topNClusters.all(); i.hasNext();) {
                         KeyValue<Integer, Cluster> cluster = i.next();
 
-                        // System.out.println("Cluster: " + cluster.key);
+                        System.out.println("Cluster: " + cluster.key);
                     }
 
                     for(KeyValueIterator<Integer, ArrayList<Double>> i = this.windowPoints.all(); i.hasNext();) {
@@ -47,8 +47,10 @@ public class FilterProcessorSupplier implements ProcessorSupplier<Integer, Array
                         Cluster cluster = this.topNClusters.get(point.key);
 
                         if (cluster != null){
+                            // Workaround to reuse densityEstimator
+                            Cluster singlePointCluster = new Cluster(point.value, point.value.size());
                             this.context.forward(point.key, point.value);
-                            // System.out.println(point.key);
+                            System.out.println(point.key);
                         }
 
                         this.windowPoints.delete(point.key);

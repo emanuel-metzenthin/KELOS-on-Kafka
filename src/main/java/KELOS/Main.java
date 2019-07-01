@@ -2,6 +2,7 @@ package KELOS;
 
 import KELOS.Processors.*;
 import KELOS.Serdes.*;
+import org.apache.kafka.common.serialization.DoubleSerializer;
 import org.apache.kafka.common.serialization.IntegerDeserializer;
 import org.apache.kafka.common.serialization.IntegerSerializer;
 import org.apache.kafka.common.serialization.Serdes;
@@ -22,6 +23,7 @@ public class Main {
     public static final String CLUSTER_TOPIC = "clusters";
     public static final String DENSITIES_TOPIC = "densities";
     public static final String PRUNED_CLUSTERS_TOPIC = "pruned_clusters";
+    public static final String OUTLIERS_TOPIC = "outliers";
     public static final int AGGREGATION_WINDOWS = 3;
     public static final double DISTANCE_THRESHOLD = 0.5;
     public static final Duration WINDOW_TIME = Duration.ofSeconds(1);
@@ -109,6 +111,21 @@ public class Main {
                 "PruningProcessor", "FilterProcessor");
 
         builder.addSink("PrunedSink", PRUNED_CLUSTERS_TOPIC, new IntegerSerializer(), new ClusterSerializer(), "PruningProcessor");
+
+        builder.addProcessor("KNNPointsProcessor", new KNearestClusterProcessorSupplier(), "FilterProcessor");
+
+        builder.addProcessor("PointDensityEstimatorProcessor", new KNearestClusterProcessorSupplier(), "KNNPointsProcessor");
+
+        builder.addProcessor("PointPruningProcessor", new PointPruningProcessorSupplier(), "PointDensityEstimatorProcessor");
+
+        builder.addStateStore(
+                Stores.keyValueStoreBuilder(
+                        Stores.inMemoryKeyValueStore("PointsWithDensities"),
+                        Serdes.Integer(),
+                        new ClusterSerde()),
+                "PointPruningProcessor");
+
+        builder.addSink("Outliers", OUTLIERS_TOPIC, new ArrayListSerializer(), new DoubleSerializer(), "PointPruningProcessor");
 
         shutdown(builder, props);
     }
