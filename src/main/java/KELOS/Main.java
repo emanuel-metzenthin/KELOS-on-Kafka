@@ -96,7 +96,9 @@ public class Main {
         builder.addSink("ClusterDensitySink", DENSITIES_TOPIC, new IntegerSerializer(), new ClusterSerializer(), "DensityEstimator");
 
         builder.addProcessor("PruningProcessor", new PruningProcessorSupplier(), "DensityEstimator");
+
         builder.addProcessor("FilterProcessor", new FilterProcessorSupplier(), "ClusteringProcessor");
+
         builder.addStateStore(
                 Stores.keyValueStoreBuilder(
                         Stores.inMemoryKeyValueStore("ClustersWithDensities"),
@@ -116,13 +118,25 @@ public class Main {
                         new ClusterSerde()),
                 "PruningProcessor", "FilterProcessor");
 
-        builder.addSink("PrunedSink", PRUNED_CLUSTERS_TOPIC, new IntegerSerializer(), new ClusterSerializer(), "PruningProcessor");
-
         builder.addProcessor("KNNPointsProcessor", new KNearestClusterProcessorSupplier(), "FilterProcessor");
 
         builder.addProcessor("PointDensityEstimatorProcessor", new KNearestClusterProcessorSupplier(), "KNNPointsProcessor");
 
         builder.addProcessor("PointPruningProcessor", new PointPruningProcessorSupplier(), "PointDensityEstimatorProcessor");
+
+        builder.addStateStore(
+                Stores.windowStoreBuilder(
+                        Stores.persistentWindowStore("PointBuffer", retention, retention, false),
+                        Serdes.Integer(),
+                        new ClusterSerde()),
+                "KNNPointsProcessor");
+
+        builder.addStateStore(
+                Stores.keyValueStoreBuilder(
+                        Stores.inMemoryKeyValueStore("PointDensityBuffer"),
+                        Serdes.Integer(),
+                        new ClusterSerde()),
+                "PointDensityEstimatorProcessor");
 
         builder.addStateStore(
                 Stores.keyValueStoreBuilder(

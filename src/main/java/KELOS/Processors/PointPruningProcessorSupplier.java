@@ -72,8 +72,10 @@ public class PointPruningProcessorSupplier implements ProcessorSupplier<Integer,
                         queue.add(pointWithKlome);
                     }
 
+
                     for (Pair<ArrayList<Double>, Double> t : queue) {
                         this.context.forward(t.getLeft(), t.getRight());
+                        System.out.println("Outlier: " + t.getRight());
                     }
 
                     context.commit();
