@@ -87,6 +87,12 @@ public class Main {
                 "KNNProcessor");
 
         builder.addProcessor("DensityEstimator", new DensityEstimationProcessorSupplier(), "KNNProcessor");
+        builder.addStateStore(
+                Stores.keyValueStoreBuilder(
+                        Stores.inMemoryKeyValueStore("ClusterDensityBuffer"),
+                        Serdes.Integer(),
+                        new ClusterSerde()),
+                "DensityEstimator");
         builder.addSink("ClusterDensitySink", DENSITIES_TOPIC, new IntegerSerializer(), new ClusterSerializer(), "DensityEstimator");
 
         builder.addProcessor("PruningProcessor", new PruningProcessorSupplier(), "DensityEstimator");
