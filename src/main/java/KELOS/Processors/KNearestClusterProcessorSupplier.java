@@ -20,45 +20,59 @@ public class KNearestClusterProcessorSupplier implements ProcessorSupplier<Integ
     /*
         Finds the K nearest neighbors for each input Cluster.
      */
+    private String storeName;
+
+    public KNearestClusterProcessorSupplier(String storeName){
+        this.storeName = storeName;
+    }
+
+    private class KNearestClusterProcessor implements Processor<Integer, Cluster> {
+        private ProcessorContext context;
+        private WindowStore<Integer, Cluster> clusters;
+        String storeName;
+
+        KNearestClusterProcessor(String storeName){
+            this.storeName = storeName;
+        }
+
+        @Override
+        public void init(ProcessorContext context) {
+            this.context = context;
+            this.clusters = (WindowStore<Integer, Cluster>) context.getStateStore(this.storeName);
+
+            this.context.schedule(WINDOW_TIME, PunctuationType.STREAM_TIME, timestamp -> {
+                System.out.println("New Window");
+
+                HashMap<Integer, Cluster> uniqueClusters = new HashMap<>();
+                for(KeyValueIterator<Windowed<Integer>, Cluster> i = this.clusters.all(); i.hasNext();) {
+                    KeyValue<Windowed<Integer>, Cluster> cluster = i.next();
+                    uniqueClusters.put(cluster.key.key(), cluster.value);
+                }
+
+                for (Integer i : uniqueClusters.keySet()){
+                    Cluster cluster = uniqueClusters.get(i);
+
+                    cluster.calculateKNearestNeighbors(uniqueClusters);
+
+                    context.forward(i, cluster);
+                    context.commit();
+                }
+            });
+        }
+
+        @Override
+        public void process(Integer key, Cluster cluster) {
+            this.clusters.put(key, cluster);
+        }
+
+        @Override
+        public void close() {
+
+        }
+    }
+
     @Override
     public Processor<Integer, Cluster> get() {
-        return new Processor<Integer, Cluster>() {
-            private ProcessorContext context;
-            private WindowStore<Integer, Cluster> clusters;
-
-            @Override
-            public void init(ProcessorContext context) {
-                this.context = context;
-                this.clusters = (WindowStore<Integer, Cluster>) context.getStateStore("ClusterBuffer");
-
-                this.context.schedule(WINDOW_TIME, PunctuationType.STREAM_TIME, timestamp -> {
-                    System.out.println("New Window");
-
-                    HashMap<Integer, Cluster> uniqueClusters = new HashMap<>();
-                    for(KeyValueIterator<Windowed<Integer>, Cluster> i = this.clusters.all(); i.hasNext();) {
-                        KeyValue<Windowed<Integer>, Cluster> cluster = i.next();
-                        uniqueClusters.put(cluster.key.key(), cluster.value);
-                    }
-
-                    for (Integer i : uniqueClusters.keySet()){
-                        Cluster cluster = uniqueClusters.get(i);
-
-                        cluster.calculateKNearestNeighbors(uniqueClusters);
-
-                        context.forward(i, cluster);
-                        context.commit();
-                    }
-                });
-            }
-
-            @Override
-            public void process(Integer key, Cluster value) {
-                //if (this.clusters.fetch)
-                this.clusters.put(key, value);
-            }
-
-            @Override
-            public void close() { }
-        };
+        return new KNearestClusterProcessor(this.storeName);
     }
 }
