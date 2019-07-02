@@ -1,6 +1,8 @@
 package KELOS;
 
 import KELOS.Serdes.ArrayListDeserializer;
+import KELOS.Serdes.PairDeserializer;
+import org.apache.commons.lang3.tuple.Pair;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
@@ -31,20 +33,20 @@ public class AssignmentConsumer {
         props.put(ConsumerConfig.AUTO_COMMIT_INTERVAL_MS_CONFIG, "1000");
         props.put(ConsumerConfig.SESSION_TIMEOUT_MS_CONFIG, "30000");
         props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, IntegerDeserializer.class.getName());
-        props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, ArrayListDeserializer.class.getName());
+        props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, PairDeserializer.class.getName());
         props.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
 
-        KafkaConsumer<Integer, ArrayList<Double>> consumer = new KafkaConsumer<>(props);
+        KafkaConsumer<Integer, Pair<Integer, ArrayList<Double>>> consumer = new KafkaConsumer<>(props);
 
         consumer.subscribe(Collections.singletonList(CLUSTER_ASSIGNMENT_TOPIC));
 
         while (true){
-            ConsumerRecords<Integer, ArrayList<Double>> records = consumer.poll(Duration.ofSeconds(1));
+            ConsumerRecords<Integer, Pair<Integer, ArrayList<Double>>> records = consumer.poll(Duration.ofSeconds(1));
 
-            for (ConsumerRecord<Integer, ArrayList<Double>> record : records) {
-                System.out.print("\n KELOS.Cluster: " + record.key() + ", [");
+            for (ConsumerRecord<Integer, Pair<Integer, ArrayList<Double>>> record : records) {
+                System.out.print("\n KELOS.Point: " + record.key() + ", Cluster: " + record.value().getLeft() + ", [");
 
-                for (double d : record.value()){
+                for (double d : record.value().getRight()){
                     System.out.print("" + d+ ", ");
                 }
                 System.out.print("]");
