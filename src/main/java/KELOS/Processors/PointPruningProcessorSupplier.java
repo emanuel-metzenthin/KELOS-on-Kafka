@@ -71,7 +71,7 @@ public class PointPruningProcessorSupplier implements ProcessorSupplier<Integer,
 
                         double knnStddev = Math.sqrt(knnVariance);
 
-                        double klome = (point.value.minDensityBound - knnMean) / knnStddev;
+                        double klome = (point.value.density - knnMean) / knnStddev;
 
                         ArrayList<Double> pointArrayList = new ArrayList<>();
                         for(int k=0; k<point.value.centroid.length; k++) {
