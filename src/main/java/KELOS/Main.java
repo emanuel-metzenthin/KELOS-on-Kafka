@@ -26,7 +26,7 @@ public class Main {
     public static final String OUTLIERS_TOPIC = "outliers";
     public static final int AGGREGATION_WINDOWS = 3;
     public static final double DISTANCE_THRESHOLD = 0.5;
-    public static final Duration WINDOW_TIME = Duration.ofSeconds(1);
+    public static final Duration WINDOW_TIME = Duration.ofSeconds(10);
     public static final int K = 5;
     public static final int N = 5;
 
