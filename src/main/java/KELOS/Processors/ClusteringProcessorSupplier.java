@@ -65,7 +65,7 @@ public class ClusteringProcessorSupplier implements ProcessorSupplier<Integer, A
                 for(KeyValueIterator<Integer, Cluster> i = this.tempClusters.all(); i.hasNext();) {
                     KeyValue<Integer, Cluster> c = i.next();
 
-                    double dist = c.value.distance(value);
+                    double dist = c.value.distance((ArrayList<Double>) value.subList(1, value.size()));
 
                     if (dist < minDist) {
                         minDist = dist;
@@ -82,7 +82,7 @@ public class ClusteringProcessorSupplier implements ProcessorSupplier<Integer, A
                     this.context.forward(clusterIdx, value, To.child("ClusterAssignmentSink"));
                     this.context.forward(clusterIdx, value, To.child("FilterProcessor"));
                 } else {
-                    this.tempClusters.put(highestCluster + 1, new Cluster(value, K));
+                    this.tempClusters.put(highestCluster + 1, new Cluster((ArrayList<Double>) value.subList(1, value.size()), K));
                     this.context.forward(highestCluster + 1, value, To.child("ClusterAssignmentSink"));
                     this.context.forward(highestCluster + 1, value, To.child("FilterProcessor"));
                 }

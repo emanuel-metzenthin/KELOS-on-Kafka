@@ -1,6 +1,7 @@
 package KELOS.Processors;
 
 import KELOS.Cluster;
+import KELOS.Main;
 import com.google.common.collect.MinMaxPriorityQueue;
 import org.apache.commons.lang3.tuple.Triple;
 import org.apache.kafka.streams.KeyValue;
@@ -48,8 +49,8 @@ public class FilterProcessorSupplier implements ProcessorSupplier<Integer, Array
 
                         if (cluster != null){
                             // Workaround to reuse densityEstimator
-                            Cluster singlePointCluster = new Cluster(point.value, point.value.size());
-                            this.context.forward(point.key, singlePointCluster);
+                            Cluster singlePointCluster = new Cluster((ArrayList<Double>) point.value.subList(1, point.value.size()), K);
+                            this.context.forward((int) (double) point.value.get(0), singlePointCluster);
                             System.out.println(point.key);
                         }
 

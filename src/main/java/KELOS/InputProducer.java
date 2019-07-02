@@ -46,9 +46,12 @@ public class InputProducer {
 
             Long timestamp = System.currentTimeMillis();
             double total_window_time_millis = Main.WINDOW_TIME.toMillis() * Main.AGGREGATION_WINDOWS;
+            int counter = 0;
 
             for (CSVRecord csvRecord : parser) {
                 ArrayList<Double> numberRecord = new ArrayList<>();
+                numberRecord.add((double) counter);
+                counter++;
 
                 for (int i = 0; i < csvRecord.size(); i++){
                     String val = csvRecord.get(i);
