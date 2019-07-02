@@ -1,6 +1,7 @@
 package KELOS.Processors;
 
 import KELOS.Cluster;
+import org.apache.commons.lang3.tuple.Pair;
 import org.apache.kafka.streams.KeyValue;
 import org.apache.kafka.streams.processor.*;
 import org.apache.kafka.streams.state.KeyValueIterator;
@@ -62,10 +63,11 @@ public class ClusteringProcessorSupplier implements ProcessorSupplier<Integer, A
                 int clusterIdx = 0;
                 int highestCluster = 0; // Highest cluster index, needed to create new clusters
 
+
                 for(KeyValueIterator<Integer, Cluster> i = this.tempClusters.all(); i.hasNext();) {
                     KeyValue<Integer, Cluster> c = i.next();
 
-                    double dist = c.value.distance((ArrayList<Double>) value.subList(1, value.size()));
+                    double dist = c.value.distance(value);
 
                     if (dist < minDist) {
                         minDist = dist;
@@ -77,14 +79,16 @@ public class ClusteringProcessorSupplier implements ProcessorSupplier<Integer, A
                 }
 
                 if (minDist < DISTANCE_THRESHOLD) {
+                    Pair<Integer, ArrayList<Double>> pair = Pair.of(clusterIdx, value);
                     cluster.addRecord(value);
                     this.tempClusters.put(clusterIdx, cluster);
-                    this.context.forward(clusterIdx, value, To.child("ClusterAssignmentSink"));
-                    this.context.forward(clusterIdx, value, To.child("FilterProcessor"));
+                    this.context.forward(key, pair, To.child("ClusterAssignmentSink"));
+                    this.context.forward(key, pair, To.child("FilterProcessor"));
                 } else {
-                    this.tempClusters.put(highestCluster + 1, new Cluster((ArrayList<Double>) value.subList(1, value.size()), K));
-                    this.context.forward(highestCluster + 1, value, To.child("ClusterAssignmentSink"));
-                    this.context.forward(highestCluster + 1, value, To.child("FilterProcessor"));
+                    Pair<Integer, ArrayList<Double>> pair = Pair.of(highestCluster + 1, value);
+                    this.tempClusters.put(highestCluster + 1, new Cluster(value, K));
+                    this.context.forward(key, pair, To.child("ClusterAssignmentSink"));
+                    this.context.forward(key, pair, To.child("FilterProcessor"));
                 }
             }
 

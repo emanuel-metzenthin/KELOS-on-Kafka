@@ -57,7 +57,7 @@ public class Main {
                 new ClusterRegistrationProcessorSupplier());
 
         builder.addProcessor("ClusteringProcessor", new ClusteringProcessorSupplier(), "DataSource");
-        builder.addSink("ClusterAssignmentSink", CLUSTER_ASSIGNMENT_TOPIC, new IntegerSerializer(), new ArrayListSerializer(), "ClusteringProcessor");
+        builder.addSink("ClusterAssignmentSink", CLUSTER_ASSIGNMENT_TOPIC, new IntegerSerializer(), new PairSerializer(), "ClusteringProcessor");
         builder.addProcessor("AggregationProcessor", new AggregationProcessorSupplier(), "ClusteringProcessor");
 
         builder.addStateStore(
@@ -108,7 +108,7 @@ public class Main {
                 Stores.keyValueStoreBuilder(
                         Stores.inMemoryKeyValueStore("ClusterAssignments"),
                         Serdes.Integer(),
-                        new ArrayListSerde()),
+                        new PairSerde()),
                 "FilterProcessor");
         builder.addStateStore(
                 Stores.keyValueStoreBuilder(

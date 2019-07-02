@@ -3,6 +3,7 @@ package KELOS.Processors;
 import KELOS.Cluster;
 import KELOS.Main;
 import com.google.common.collect.MinMaxPriorityQueue;
+import org.apache.commons.lang3.tuple.Pair;
 import org.apache.commons.lang3.tuple.Triple;
 import org.apache.kafka.streams.KeyValue;
 import org.apache.kafka.streams.processor.*;
@@ -17,23 +18,22 @@ import java.util.Iterator;
 import static KELOS.Main.*;
 
 
-public class FilterProcessorSupplier implements ProcessorSupplier<Integer, ArrayList<Double>> {
+public class FilterProcessorSupplier implements ProcessorSupplier<Integer, Pair<Integer, ArrayList<Double>>> {
     /*
 
      */
     @Override
-    public Processor<Integer, ArrayList<Double>> get() {
-        return new Processor<Integer, ArrayList<Double>>() {
+    public Processor<Integer, Pair<Integer, ArrayList<Double>>> get() {
+        return new Processor<Integer, Pair<Integer, ArrayList<Double>>>() {
             private ProcessorContext context;
             private KeyValueStore<Integer, Cluster> topNClusters;
-            private KeyValueStore<Integer, ArrayList<Double>> windowPoints;
-
+            private KeyValueStore<Integer, Pair<Integer, ArrayList<Double>>> windowPoints;
 
             @Override
             public void init(ProcessorContext context) {
                 this.context = context;
                 this.topNClusters = (KeyValueStore<Integer, Cluster>) context.getStateStore("TopNClusters");
-                this.windowPoints = (KeyValueStore<Integer, ArrayList<Double>>) context.getStateStore("ClusterAssignments");
+                this.windowPoints = (KeyValueStore<Integer, Pair<Integer, ArrayList<Double>>>) context.getStateStore("ClusterAssignments");
 
                 this.context.schedule(WINDOW_TIME, PunctuationType.STREAM_TIME, timestamp -> {
                     for(KeyValueIterator<Integer, Cluster> i = this.topNClusters.all(); i.hasNext();) {
@@ -42,15 +42,16 @@ public class FilterProcessorSupplier implements ProcessorSupplier<Integer, Array
                         System.out.println("Cluster: " + cluster.key);
                     }
 
-                    for(KeyValueIterator<Integer, ArrayList<Double>> i = this.windowPoints.all(); i.hasNext();) {
-                        KeyValue<Integer, ArrayList<Double>> point = i.next();
+                    for(KeyValueIterator<Integer,Pair<Integer, ArrayList<Double>>> i = this.windowPoints.all(); i.hasNext();) {
+                        KeyValue<Integer, Pair<Integer, ArrayList<Double>>> point = i.next();
 
-                        Cluster cluster = this.topNClusters.get(point.key);
+                        Cluster cluster = this.topNClusters.get(point.value.getLeft());
 
                         if (cluster != null){
                             // Workaround to reuse densityEstimator
-                            Cluster singlePointCluster = new Cluster((ArrayList<Double>) point.value.subList(1, point.value.size()), K);
-                            this.context.forward((int) (double) point.value.get(0), singlePointCluster);
+                            Cluster singlePointCluster = new Cluster(point.value.getRight(), K);
+
+                            this.context.forward(point.key, singlePointCluster);
                             System.out.println(point.key);
                         }
 
@@ -63,7 +64,7 @@ public class FilterProcessorSupplier implements ProcessorSupplier<Integer, Array
 
              */
             @Override
-            public void process(Integer key, ArrayList<Double> value) {
+            public void process(Integer key, Pair<Integer, ArrayList<Double>> value) {
                 this.windowPoints.put(key, value);
             }
 
