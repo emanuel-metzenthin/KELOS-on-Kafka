@@ -26,10 +26,10 @@ public class InputProducer {
     static String SERVER_CONFIGS = "localhost:9092";
 
     public static void main(String[] args) {
-        runProducer();
+        runProducer(6000);
     }
 
-    static void runProducer() {
+    static void runProducer(int elementsPerWindow) {
         Properties props = new Properties();
 
         props.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, InputProducer.SERVER_CONFIGS);
@@ -45,6 +45,7 @@ public class InputProducer {
             CSVParser parser = CSVParser.parse(csvData, Charset.forName("UTF-8"), CSVFormat.RFC4180);
 
             Long timestamp = System.currentTimeMillis();
+            double total_window_time_millis = Main.WINDOW_TIME.toMillis() * Main.AGGREGATION_WINDOWS;
 
             for (CSVRecord csvRecord : parser) {
                 ArrayList<Double> numberRecord = new ArrayList<>();
@@ -58,7 +59,7 @@ public class InputProducer {
                     }
                 }
 
-                timestamp += 10;
+                timestamp += (int) (total_window_time_millis) / elementsPerWindow;
 
                 producer.send(new ProducerRecord<>(InputProducer.TOPIC, 0, timestamp, 0, numberRecord));
             }
