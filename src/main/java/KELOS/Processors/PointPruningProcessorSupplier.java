@@ -90,6 +90,12 @@ public class PointPruningProcessorSupplier implements ProcessorSupplier<Integer,
                     }
 
                     context.commit();
+
+                    for(KeyValueIterator<Integer, Cluster> i = this.pointWithDensities.all(); i.hasNext();) {
+                        KeyValue<Integer, Cluster> cluster = i.next();
+
+                        this.pointWithDensities.delete(cluster.key);
+                    }
                 });
             }
 

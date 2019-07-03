@@ -112,6 +112,12 @@ public class PruningProcessorSupplier implements ProcessorSupplier<Integer, Clus
                     this.topNClusters.put(t.getLeft(), this.clusterWithDensities.get(t.getLeft()));
                 }
 
+                for(KeyValueIterator<Integer, Cluster> i = this.clusterWithDensities.all(); i.hasNext();) {
+                    KeyValue<Integer, Cluster> cluster = i.next();
+
+                    this.clusterWithDensities.delete(cluster.key);
+                }
+
                 context.commit();
             });
         }
