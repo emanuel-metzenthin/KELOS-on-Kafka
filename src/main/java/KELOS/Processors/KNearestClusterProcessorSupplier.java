@@ -28,7 +28,7 @@ public class KNearestClusterProcessorSupplier implements ProcessorSupplier<Integ
 
     private class KNearestClusterProcessor implements Processor<Integer, Cluster> {
         private ProcessorContext context;
-        private WindowStore<Integer, Cluster> clusters;
+        private KeyValueStore<Integer, Cluster> clusters;
         String storeName;
 
         KNearestClusterProcessor(String storeName){
@@ -38,24 +38,30 @@ public class KNearestClusterProcessorSupplier implements ProcessorSupplier<Integ
         @Override
         public void init(ProcessorContext context) {
             this.context = context;
-            this.clusters = (WindowStore<Integer, Cluster>) context.getStateStore(this.storeName);
+            this.clusters = (KeyValueStore<Integer, Cluster>) context.getStateStore(this.storeName);
 
             this.context.schedule(WINDOW_TIME, PunctuationType.STREAM_TIME, timestamp -> {
-                System.out.println("New Window");
-
+                /*
                 HashMap<Integer, Cluster> uniqueClusters = new HashMap<>();
                 for(KeyValueIterator<Windowed<Integer>, Cluster> i = this.clusters.all(); i.hasNext();) {
                     KeyValue<Windowed<Integer>, Cluster> cluster = i.next();
                     uniqueClusters.put(cluster.key.key(), cluster.value);
                 }
+                */
 
-                for (Integer i : uniqueClusters.keySet()){
-                    Cluster cluster = uniqueClusters.get(i);
+                for (KeyValueIterator<Integer, Cluster> it = this.clusters.all(); it.hasNext();){
+                    KeyValue<Integer, Cluster> kv = it.next();
+                    Cluster cluster = kv.value;
 
-                    cluster.calculateKNearestNeighbors(uniqueClusters);
+                    cluster.calculateKNearestNeighbors(this.clusters.all());
 
-                    context.forward(i, cluster);
+                    context.forward(kv.key, cluster);
                     context.commit();
+                }
+
+                for (KeyValueIterator<Integer, Cluster> it = this.clusters.all(); it.hasNext();){
+                    KeyValue<Integer, Cluster> kv = it.next();
+                    this.clusters.delete(kv.key);
                 }
             });
         }

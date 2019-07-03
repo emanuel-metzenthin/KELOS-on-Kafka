@@ -24,7 +24,7 @@ public class Main {
     public static final String DENSITIES_TOPIC = "densities";
     public static final String PRUNED_CLUSTERS_TOPIC = "pruned_clusters";
     public static final String OUTLIERS_TOPIC = "outliers";
-    public static final int AGGREGATION_WINDOWS = 3;
+    public static final int AGGREGATION_WINDOWS = 1;
     public static final double DISTANCE_THRESHOLD = 0.5;
     public static final Duration WINDOW_TIME = Duration.ofSeconds(10);
     public static final int K = 5;
@@ -80,8 +80,8 @@ public class Main {
 
         Duration retention =  Duration.ofSeconds(AGGREGATION_WINDOWS * WINDOW_TIME.getSeconds());
         builder.addStateStore(
-                Stores.windowStoreBuilder(
-                        Stores.persistentWindowStore("ClusterBuffer", retention, retention, false),
+                Stores.keyValueStoreBuilder(
+                        Stores.inMemoryKeyValueStore("ClusterBuffer"),
                         Serdes.Integer(),
                         new ClusterSerde()),
                 "KNNProcessor");
@@ -124,8 +124,8 @@ public class Main {
         builder.addProcessor("PointPruningProcessor", new PointPruningProcessorSupplier(), "PointDensityEstimatorProcessor");
 
         builder.addStateStore(
-                Stores.windowStoreBuilder(
-                        Stores.persistentWindowStore("PointBuffer", retention, retention, false),
+                Stores.keyValueStoreBuilder(
+                        Stores.inMemoryKeyValueStore("PointBuffer"),
                         Serdes.Integer(),
                         new ClusterSerde()),
                 "KNNPointsProcessor");

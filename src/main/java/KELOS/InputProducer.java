@@ -26,7 +26,7 @@ public class InputProducer {
     static String SERVER_CONFIGS = "localhost:9092";
 
     public static void main(String[] args) {
-        runProducer(6000);
+        runProducer(200);
     }
 
     static void runProducer(int elementsPerWindow) {

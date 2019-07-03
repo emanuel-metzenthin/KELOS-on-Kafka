@@ -39,8 +39,10 @@ public class FilterProcessorSupplier implements ProcessorSupplier<Integer, Pair<
                     for(KeyValueIterator<Integer, Cluster> i = this.topNClusters.all(); i.hasNext();) {
                         KeyValue<Integer, Cluster> cluster = i.next();
 
-                        System.out.println("Cluster: " + cluster.key);
+                        // System.out.println("Cluster: " + cluster.key);
                     }
+
+                    System.out.println("New Window");
 
                     for(KeyValueIterator<Integer,Pair<Integer, ArrayList<Double>>> i = this.windowPoints.all(); i.hasNext();) {
                         KeyValue<Integer, Pair<Integer, ArrayList<Double>>> point = i.next();
