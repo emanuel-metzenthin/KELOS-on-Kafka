@@ -46,14 +46,14 @@ public class PruningProcessorSupplier implements ProcessorSupplier<Integer, Clus
 
         PruningProcessor(String densityStoreName, String topNStoreName){
             this.densityStoreName = densityStoreName;
-            this.topNStoreName = topNStoreName;
+            // this.topNStoreName = topNStoreName;
         }
 
         @Override
         public void init(ProcessorContext context) {
             this.context = context;
             this.clusterWithDensities = (KeyValueStore<Integer, Cluster>) context.getStateStore(this.densityStoreName);
-            this.topNClusters = (KeyValueStore<Integer, Cluster>) context.getStateStore(this.topNStoreName);
+            // this.topNClusters = (KeyValueStore<Integer, Cluster>) context.getStateStore(this.topNStoreName);
 
 
             this.context.schedule(WINDOW_TIME, PunctuationType.STREAM_TIME, timestamp -> {
@@ -102,14 +102,15 @@ public class PruningProcessorSupplier implements ProcessorSupplier<Integer, Clus
                     }
                 }
 
-                for(KeyValueIterator<Integer, Cluster> i = this.topNClusters.all(); i.hasNext();) {
+                /* for(KeyValueIterator<Integer, Cluster> i = this.topNClusters.all(); i.hasNext();) {
                     KeyValue<Integer, Cluster> cluster = i.next();
 
                     this.topNClusters.delete(cluster.key);
-                }
+                }*/
 
                 for (Triple<Integer, Double, Double> t : queue) {
-                    this.topNClusters.put(t.getLeft(), this.clusterWithDensities.get(t.getLeft()));
+                    this.context.forward(t.getLeft(), this.clusterWithDensities.get(t.getLeft()));
+                    // this.topNClusters.put(t.getLeft(), this.clusterWithDensities.get(t.getLeft()));
                 }
 
                 for(KeyValueIterator<Integer, Cluster> i = this.clusterWithDensities.all(); i.hasNext();) {

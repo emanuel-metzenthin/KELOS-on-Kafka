@@ -32,19 +32,20 @@ public class AggregationProcessorSupplier implements ProcessorSupplier<Integer, 
 
             @Override
             public void process(Integer key, Cluster value) {
-
                 ArrayList<Cluster> oldList = this.clusterStates.get(key);
 
                 if (oldList == null || oldList.size() == 0 || oldList.get(0) == null) {
-                    ArrayList<Cluster> newList = new ArrayList<>();
-                    newList.add(value);
+                    if (value.size > 0){
+                        ArrayList<Cluster> newList = new ArrayList<>();
+                        newList.add(value);
 
-                    this.context.forward(key, value);
-                    this.clusterStates.put(key, newList);
+                        this.context.forward(key, value);
+                        this.clusterStates.put(key, newList);
+                    }
                 } else {
                     ArrayList<Cluster> newList = oldList;
 
-                    if (oldList.size() > Main.AGGREGATION_WINDOWS){
+                    if (oldList.size() >= Main.AGGREGATION_WINDOWS){
                         newList.remove(0);
                     }
 
@@ -57,14 +58,12 @@ public class AggregationProcessorSupplier implements ProcessorSupplier<Integer, 
 
                     newList.add(value);
 
-                    if (aggregate.size < 0){
-                        System.out.print("");
-                    }
-
                     if (aggregate.size == 0){
+                        // System.out.println("Forward " + key + " Size = null");
                         this.context.forward(key, null); // Delete empty cluster
                     }
                     else {
+                        // System.out.println("Forward " + key + " Size = " + aggregate.size);
                         this.context.forward(key, aggregate);
                     }
 

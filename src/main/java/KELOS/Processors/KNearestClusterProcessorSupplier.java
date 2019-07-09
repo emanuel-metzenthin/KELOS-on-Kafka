@@ -11,8 +11,14 @@ import org.apache.kafka.streams.state.KeyValueIterator;
 import org.apache.kafka.streams.state.KeyValueStore;
 import org.apache.kafka.streams.state.WindowStore;
 
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashMap;
+import java.util.TimeZone;
 
 import static KELOS.Main.WINDOW_TIME;
 
@@ -48,12 +54,31 @@ public class KNearestClusterProcessorSupplier implements ProcessorSupplier<Integ
                     uniqueClusters.put(cluster.key.key(), cluster.value);
                 }
                 */
+                Date date = new Date(timestamp);
+                DateFormat formatter = new SimpleDateFormat("HH:mm:ss.SSS");
+                formatter.setTimeZone(TimeZone.getTimeZone("Europe/Berlin"));
+                String dateFormatted = formatter.format(date);
+                String systime = LocalDateTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss.SSS"));
+
+                if (this.storeName.equals("ClusterBuffer")){
+                    System.out.println("New KNN window: " + dateFormatted + " System time : " + systime);
+                }
+                else {
+
+                }
 
                 for (KeyValueIterator<Integer, Cluster> it = this.clusters.all(); it.hasNext();){
                     KeyValue<Integer, Cluster> kv = it.next();
                     Cluster cluster = kv.value;
 
                     cluster.calculateKNearestNeighbors(this.clusters.all());
+
+                    if (this.storeName.equals("ClusterBuffer")){
+                        System.out.println("KNN forward: " + kv.key);
+                    }
+                    else {
+
+                    }
 
                     context.forward(kv.key, cluster);
                     context.commit();

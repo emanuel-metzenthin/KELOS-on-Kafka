@@ -2,6 +2,7 @@ package KELOS.Processors;
 
 import KELOS.Cluster;
 import org.apache.commons.lang3.tuple.Pair;
+import org.apache.commons.lang3.tuple.Triple;
 import org.apache.kafka.streams.KeyValue;
 import org.apache.kafka.streams.processor.*;
 import org.apache.kafka.streams.state.KeyValueIterator;
@@ -22,19 +23,26 @@ public class ClusteringProcessorSupplier implements ProcessorSupplier<Integer, A
         return new Processor<Integer, ArrayList<Double>>() {
             private ProcessorContext context;
             private KeyValueStore<Integer, Cluster> tempClusters;
+            private KeyValueStore<Integer, Triple<Integer, ArrayList<Double>, Long>> clusterAssignments;
 
             @Override
             public void init(ProcessorContext context) {
                 this.context = context;
                 this.tempClusters = (KeyValueStore<Integer, Cluster>) context.getStateStore("TempClusters");
+                this.clusterAssignments = (KeyValueStore<Integer, Triple<Integer, ArrayList<Double>, Long>>) context.getStateStore("ClusterAssignments");
+
                 KeyValueStore<Integer, Cluster> clusters = (KeyValueStore<Integer, Cluster>) context.getStateStore("Clusters");
 
                 // Emit cluster meta data after sub-window has been processed
                 this.context.schedule(WINDOW_TIME, PunctuationType.STREAM_TIME, timestamp -> {
+                    // System.out.println("New Window");
+
                     for(KeyValueIterator<Integer, Cluster> i = this.tempClusters.all(); i.hasNext();) {
                         KeyValue<Integer, Cluster> cluster = i.next();
                         cluster.value.updateMetrics();
                         context.forward(cluster.key, cluster.value, To.child("AggregationProcessor"));
+
+                        this.tempClusters.delete(cluster.key);
                     }
 
                     context.commit();
@@ -79,16 +87,19 @@ public class ClusteringProcessorSupplier implements ProcessorSupplier<Integer, A
                 }
 
                 if (minDist < DISTANCE_THRESHOLD) {
-                    Pair<Integer, ArrayList<Double>> pair = Pair.of(clusterIdx, value);
+                    Triple<Integer, ArrayList<Double>, Long> triple = Triple.of(clusterIdx, value, this.context.timestamp());
                     cluster.addRecord(value);
                     this.tempClusters.put(clusterIdx, cluster);
-                    this.context.forward(key, pair, To.child("ClusterAssignmentSink"));
-                    this.context.forward(key, pair, To.child("FilterProcessor"));
+                    this.clusterAssignments.put(key, triple);
+                    // this.context.forward(key, pair, To.child("ClusterAssignmentSink"));
+                    // this.context.forward(key, pair, To.child("FilterProcessor"));
                 } else {
-                    Pair<Integer, ArrayList<Double>> pair = Pair.of(highestCluster + 1, value);
+                    Triple<Integer, ArrayList<Double>, Long> triple = Triple.of(highestCluster + 1, value, this.context.timestamp());
                     this.tempClusters.put(highestCluster + 1, new Cluster(value, K));
-                    this.context.forward(key, pair, To.child("ClusterAssignmentSink"));
-                    this.context.forward(key, pair, To.child("FilterProcessor"));
+
+                    this.clusterAssignments.put(key, triple);
+                    // this.context.forward(key, pair, To.child("ClusterAssignmentSink"));
+                    // this.context.forward(key, pair, To.child("FilterProcessor"));
                 }
             }
 

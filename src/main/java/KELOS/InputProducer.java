@@ -26,7 +26,7 @@ public class InputProducer {
     static String SERVER_CONFIGS = "localhost:9092";
 
     public static void main(String[] args) {
-        runProducer(200);
+        runProducer(10);
     }
 
     static void runProducer(int elementsPerWindow) {
@@ -49,6 +49,11 @@ public class InputProducer {
 
             int count = 0;
             for (CSVRecord csvRecord : parser) {
+
+                if (count == 200){
+                    break;
+                }
+
                 ArrayList<Double> numberRecord = new ArrayList<>();
 
                 for (int i = 0; i < csvRecord.size(); i++){
@@ -60,12 +65,14 @@ public class InputProducer {
                     }
                 }
 
+                Thread.sleep(200);
+
                 timestamp += (int) (total_window_time_millis) / elementsPerWindow;
 
                 producer.send(new ProducerRecord<>(InputProducer.TOPIC, 0, timestamp, count, numberRecord));
                 count++;
             }
-        } catch (IOException e) {
+        } catch (IOException | InterruptedException e) {
             e.printStackTrace();
         }
 

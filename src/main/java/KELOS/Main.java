@@ -57,7 +57,7 @@ public class Main {
                 new ClusterRegistrationProcessorSupplier());
 
         builder.addProcessor("ClusteringProcessor", new ClusteringProcessorSupplier(), "DataSource");
-        builder.addSink("ClusterAssignmentSink", CLUSTER_ASSIGNMENT_TOPIC, new IntegerSerializer(), new PairSerializer(), "ClusteringProcessor");
+        builder.addSink("ClusterAssignmentSink", CLUSTER_ASSIGNMENT_TOPIC, new IntegerSerializer(), new TripleSerializer(), "ClusteringProcessor");
         builder.addProcessor("AggregationProcessor", new AggregationProcessorSupplier(), "ClusteringProcessor");
 
         builder.addStateStore(
@@ -96,7 +96,7 @@ public class Main {
         builder.addSink("ClusterDensitySink", DENSITIES_TOPIC, new IntegerSerializer(), new ClusterSerializer(), "DensityEstimator");
 
         builder.addProcessor("PruningProcessor", new PruningProcessorSupplier("ClustersWithDensities", "TopNClusters"), "DensityEstimator");
-        builder.addProcessor("FilterProcessor", new FilterProcessorSupplier(), "ClusteringProcessor");
+        builder.addProcessor("FilterProcessor", new FilterProcessorSupplier(), "PruningProcessor");
 
         builder.addStateStore(
                 Stores.keyValueStoreBuilder(
@@ -108,14 +108,14 @@ public class Main {
                 Stores.keyValueStoreBuilder(
                         Stores.inMemoryKeyValueStore("ClusterAssignments"),
                         Serdes.Integer(),
-                        new PairSerde()),
-                "FilterProcessor");
+                        new TripleSerde()),
+                "ClusteringProcessor", "FilterProcessor");
         builder.addStateStore(
                 Stores.keyValueStoreBuilder(
                         Stores.inMemoryKeyValueStore("TopNClusters"),
                         Serdes.Integer(),
                         new ClusterSerde()),
-                "PruningProcessor", "FilterProcessor");
+                "FilterProcessor");
 
         builder.addProcessor("KNNPointsProcessor", new KNearestClusterProcessorSupplier("PointBuffer"), "FilterProcessor");
 

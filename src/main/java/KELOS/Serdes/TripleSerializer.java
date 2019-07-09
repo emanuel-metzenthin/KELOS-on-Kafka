@@ -1,5 +1,6 @@
 package KELOS.Serdes;
 import org.apache.commons.lang3.tuple.Pair;
+import org.apache.commons.lang3.tuple.Triple;
 import org.apache.kafka.common.serialization.Serializer;
 
 import java.io.ByteArrayOutputStream;
@@ -8,14 +9,14 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Map;
 
-public class PairSerializer implements Serializer<Pair<Integer, ArrayList<Double>>> {
+public class TripleSerializer implements Serializer<Triple<Integer, ArrayList<Double>, Long>> {
     @Override
     public void configure(Map<String, ?> map, boolean b) {
 
     }
 
     @Override
-    public byte[] serialize(String topic, Pair<Integer, ArrayList<Double>> pair) {
+    public byte[] serialize(String topic, Triple<Integer, ArrayList<Double>, Long> pair) {
 
         if (pair == null){
             return null;
@@ -27,7 +28,8 @@ public class PairSerializer implements Serializer<Pair<Integer, ArrayList<Double
 
         try {
             out.writeInt(pair.getLeft());
-            baos.write(serializer.serialize("", pair.getRight()));
+            out.writeLong(pair.getRight());
+            baos.write(serializer.serialize("", pair.getMiddle()));
 
         } catch (IOException e) {
             e.printStackTrace();
