@@ -60,12 +60,17 @@ public class FilterProcessorSupplier implements ProcessorSupplier<Integer, Clust
                         if (point.value.getRight() < timestamp - WINDOW_TIME.toMillis()){
                             Cluster cluster = this.topNClusters.get(point.value.getLeft());
 
-                            if (cluster != null){
-                                // Workaround to reuse densityEstimator
-                                Cluster singlePointCluster = new Cluster(point.value.getMiddle(), K);
+                            // Workaround to reuse densityEstimator
+                            Cluster singlePointCluster = new Cluster(point.value.getMiddle(), K);
 
-                                this.context.forward(point.key, singlePointCluster);
+                            if (cluster != null){
+                                Pair<Cluster, Boolean> pair = Pair.of(singlePointCluster, true);
+                                this.context.forward(point.key, pair);
                                 System.out.println("Filter: " + point.key);
+                            }
+                            else {
+                                Pair<Cluster, Boolean> pair = Pair.of(singlePointCluster, false);
+                                this.context.forward(point.key, pair);
                             }
 
                             this.windowPoints.delete(point.key);
