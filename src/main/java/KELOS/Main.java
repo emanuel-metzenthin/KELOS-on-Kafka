@@ -119,7 +119,7 @@ public class Main {
 
         builder.addProcessor("KNNPointsProcessor", new KNearestPointsProcessorSupplier(), "FilterProcessor");
 
-        builder.addProcessor("PointDensityEstimatorProcessor", new DensityEstimationProcessorSupplier("PointDensityBuffer"), "KNNPointsProcessor");
+        builder.addProcessor("PointDensityEstimatorProcessor", new PointDensityEstimationProcessorSupplier("PointDensityBuffer"), "KNNPointsProcessor");
 
         builder.addProcessor("PointPruningProcessor", new PointPruningProcessorSupplier(), "PointDensityEstimatorProcessor");
 
@@ -136,6 +136,13 @@ public class Main {
                         Serdes.Integer(),
                         new ClusterSerde()),
                 "KNNPointsProcessor");
+
+        builder.addStateStore(
+                Stores.keyValueStoreBuilder(
+                        Stores.inMemoryKeyValueStore("PointDensityCandidates"),
+                        Serdes.Integer(),
+                        new ClusterSerde()),
+                "PointDensityEstimatorProcessor");
 
         builder.addStateStore(
                 Stores.keyValueStoreBuilder(

@@ -59,7 +59,9 @@ public class KNearestPointsProcessorSupplier implements ProcessorSupplier<Intege
 
                         cluster.calculateKNearestNeighbors(this.pointClusters.all());
 
-                        context.forward(kv.key, cluster);
+                        Pair<Cluster, Boolean> pair = Pair.of(cluster, true);
+                        context.forward(kv.key, pair);
+                        System.out.println("KNN Points forward: " + kv.key);
                         context.commit();
 
                         this.candidatePoints.delete(kv.key);
@@ -67,6 +69,9 @@ public class KNearestPointsProcessorSupplier implements ProcessorSupplier<Intege
 
                     for (KeyValueIterator<Integer, Cluster> it = this.pointClusters.all(); it.hasNext();){
                         KeyValue<Integer, Cluster> kv = it.next();
+                        Pair<Cluster, Boolean> pair = Pair.of(kv.value, true);
+                        context.forward(kv.key, pair);
+
                         this.pointClusters.delete(kv.key);
                     }
                 });
