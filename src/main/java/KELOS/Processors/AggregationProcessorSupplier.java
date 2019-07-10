@@ -32,6 +32,7 @@ public class AggregationProcessorSupplier implements ProcessorSupplier<Integer, 
 
             @Override
             public void process(Integer key, Cluster value) {
+
                 ArrayList<Cluster> oldList = this.clusterStates.get(key);
 
                 if (oldList == null || oldList.size() == 0 || oldList.get(0) == null) {

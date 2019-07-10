@@ -35,8 +35,7 @@ public class ClusteringProcessorSupplier implements ProcessorSupplier<Integer, A
 
                 // Emit cluster meta data after sub-window has been processed
                 this.context.schedule(WINDOW_TIME, PunctuationType.STREAM_TIME, timestamp -> {
-                    // System.out.println("New Window");
-
+                     // System.out.println("Clustering window" + timestamp);
                     for(KeyValueIterator<Integer, Cluster> i = this.tempClusters.all(); i.hasNext();) {
                         KeyValue<Integer, Cluster> cluster = i.next();
                         cluster.value.updateMetrics();
@@ -71,7 +70,7 @@ public class ClusteringProcessorSupplier implements ProcessorSupplier<Integer, A
                 int clusterIdx = 0;
                 int highestCluster = 0; // Highest cluster index, needed to create new clusters
 
-
+                // System.out.println("CLustering: processing point " + key);
                 for(KeyValueIterator<Integer, Cluster> i = this.tempClusters.all(); i.hasNext();) {
                     KeyValue<Integer, Cluster> c = i.next();
 

@@ -104,6 +104,7 @@ public class PointPruningProcessorSupplier implements ProcessorSupplier<Integer,
              */
             @Override
             public void process(Integer key, Cluster value) {
+                System.out.println("Put " + key);
                 this.pointWithDensities.put(key, value);
             }
 

@@ -62,9 +62,11 @@ public class PruningProcessorSupplier implements ProcessorSupplier<Integer, Clus
                         .maximumSize(N)
                         .create();
 
-
+                // System.out.println("Pruning at " + timestamp);
                 for(KeyValueIterator<Integer, Cluster> i = this.clusterWithDensities.all(); i.hasNext();) {
                     KeyValue<Integer, Cluster> cluster = i.next();
+
+                    // System.out.println("Pruning cluster " + cluster.key);
 
                     double knnMean = 0;
                     double knnVariance = 0;

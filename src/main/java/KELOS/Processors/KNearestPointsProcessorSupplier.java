@@ -1,6 +1,7 @@
 package KELOS.Processors;
 
 import KELOS.Cluster;
+import org.apache.commons.lang3.tuple.Pair;
 import org.apache.kafka.streams.KeyValue;
 import org.apache.kafka.streams.processor.Processor;
 import org.apache.kafka.streams.processor.ProcessorContext;
@@ -19,20 +20,22 @@ import java.util.TimeZone;
 import static KELOS.Main.WINDOW_TIME;
 
 /*
-    Finds the K nearest neighbors for each input Cluster.
+    Finds the K nearest neighbors for each input point.
  */
-public class KNearestClusterProcessorSupplier implements ProcessorSupplier<Integer, Cluster> {
+public class KNearestPointsProcessorSupplier implements ProcessorSupplier<Integer, Pair<Cluster, Boolean>> {
 
     @Override
-    public Processor<Integer, Cluster> get() {
-        return new Processor<Integer, Cluster>() {
+    public Processor<Integer, Pair<Cluster, Boolean>> get() {
+        return new Processor<Integer, Pair<Cluster, Boolean>>() {
             private ProcessorContext context;
-            private KeyValueStore<Integer, Cluster> clusters;
+            private KeyValueStore<Integer, Cluster> pointClusters;
+            private KeyValueStore<Integer, Cluster> candidatePoints;
 
             @Override
             public void init(ProcessorContext context) {
                 this.context = context;
-                this.clusters = (KeyValueStore<Integer, Cluster>) context.getStateStore("ClusterBuffer");
+                this.pointClusters = (KeyValueStore<Integer, Cluster>) context.getStateStore("PointBuffer");
+                this.candidatePoints = (KeyValueStore<Integer, Cluster>) context.getStateStore("CandidatePoints");
 
                 this.context.schedule(WINDOW_TIME, PunctuationType.STREAM_TIME, timestamp -> {
                 /*
@@ -48,30 +51,34 @@ public class KNearestClusterProcessorSupplier implements ProcessorSupplier<Integ
                     String dateFormatted = formatter.format(date);
                     String systime = LocalDateTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss.SSS"));
 
-                    System.out.println("New KNN window: " + dateFormatted + " System time : " + systime);
+                    System.out.println("New KNN Points window: " + dateFormatted + " System time : " + systime);
 
-                    for (KeyValueIterator<Integer, Cluster> it = this.clusters.all(); it.hasNext(); ) {
+                    for (KeyValueIterator<Integer, Cluster> it = this.candidatePoints.all(); it.hasNext();){
                         KeyValue<Integer, Cluster> kv = it.next();
                         Cluster cluster = kv.value;
 
-                        cluster.calculateKNearestNeighbors(this.clusters.all());
-
-                        System.out.println("KNN forward: " + kv.key);
+                        cluster.calculateKNearestNeighbors(this.pointClusters.all());
 
                         context.forward(kv.key, cluster);
                         context.commit();
+
+                        this.candidatePoints.delete(kv.key);
                     }
 
-                    for (KeyValueIterator<Integer, Cluster> it = this.clusters.all(); it.hasNext(); ) {
+                    for (KeyValueIterator<Integer, Cluster> it = this.pointClusters.all(); it.hasNext();){
                         KeyValue<Integer, Cluster> kv = it.next();
-                        this.clusters.delete(kv.key);
+                        this.pointClusters.delete(kv.key);
                     }
                 });
             }
 
             @Override
-            public void process(Integer key, Cluster cluster) {
-                this.clusters.put(key, cluster);
+            public void process(Integer key, Pair<Cluster, Boolean> cluster) {
+                if(cluster.getRight()) {
+                    this.candidatePoints.put(key, cluster.getLeft());
+                } else {
+                    this.pointClusters.put(key, cluster.getLeft());
+                }
             }
 
             @Override

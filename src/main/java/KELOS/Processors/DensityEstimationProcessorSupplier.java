@@ -42,7 +42,7 @@ public class DensityEstimationProcessorSupplier implements ProcessorSupplier<Int
             this.clusters = (KeyValueStore<Integer, Cluster>) context.getStateStore(this.storeName);
 
             this.context.schedule(WINDOW_TIME, PunctuationType.STREAM_TIME, timestamp -> {
-
+                System.out.println("Density estimation at: " + timestamp);
                 for(KeyValueIterator<Integer, Cluster> it = this.clusters.all(); it.hasNext();) {
                     KeyValue<Integer, Cluster> kv = it.next();
                     Integer key = kv.key;
@@ -130,7 +130,10 @@ public class DensityEstimationProcessorSupplier implements ProcessorSupplier<Int
                         cluster.minDensityBound += minProductKernel * clusterWeights.get(i);
                         cluster.maxDensityBound += maxProductKernel * clusterWeights.get(i);
                     }
-
+//                    if(this.storeName == "PointDensityBuffer"){
+//                        System.out.println("Dens forward " + kv.key);
+//                    }
+                    System.out.println("Density for " + key);
                     this.context.forward(key, cluster);
                 }
 
@@ -144,6 +147,7 @@ public class DensityEstimationProcessorSupplier implements ProcessorSupplier<Int
 
         @Override
         public void process(Integer key, Cluster cluster) {
+//            System.out.println("Density process " + key);
             this.clusters.put(key, cluster);
         }
 

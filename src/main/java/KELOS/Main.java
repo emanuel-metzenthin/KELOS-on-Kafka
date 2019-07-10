@@ -76,7 +76,7 @@ public class Main {
 
         builder.addSink("ClusterSink", CLUSTER_TOPIC, new IntegerSerializer(), new ClusterSerializer(), "AggregationProcessor");
 
-        builder.addProcessor("KNNProcessor", new KNearestClusterProcessorSupplier("ClusterBuffer"), "AggregationProcessor");
+        builder.addProcessor("KNNProcessor", new KNearestClusterProcessorSupplier(), "AggregationProcessor");
 
         Duration retention =  Duration.ofSeconds(AGGREGATION_WINDOWS * WINDOW_TIME.getSeconds());
         builder.addStateStore(
@@ -117,7 +117,7 @@ public class Main {
                         new ClusterSerde()),
                 "FilterProcessor");
 
-        builder.addProcessor("KNNPointsProcessor", new KNearestClusterProcessorSupplier("PointBuffer"), "FilterProcessor");
+        builder.addProcessor("KNNPointsProcessor", new KNearestPointsProcessorSupplier(), "FilterProcessor");
 
         builder.addProcessor("PointDensityEstimatorProcessor", new DensityEstimationProcessorSupplier("PointDensityBuffer"), "KNNPointsProcessor");
 
@@ -126,6 +126,13 @@ public class Main {
         builder.addStateStore(
                 Stores.keyValueStoreBuilder(
                         Stores.inMemoryKeyValueStore("PointBuffer"),
+                        Serdes.Integer(),
+                        new ClusterSerde()),
+                "KNNPointsProcessor");
+
+        builder.addStateStore(
+                Stores.keyValueStoreBuilder(
+                        Stores.inMemoryKeyValueStore("CandidatePoints"),
                         Serdes.Integer(),
                         new ClusterSerde()),
                 "KNNPointsProcessor");
