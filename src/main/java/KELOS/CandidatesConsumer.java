@@ -12,15 +12,19 @@ import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.common.serialization.IntegerDeserializer;
 
 import java.io.BufferedWriter;
+import java.io.FileWriter;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Properties;
 
+import static KELOS.Main.CANDIDATES_TOPIC;
 import static KELOS.Main.DENSITIES_TOPIC;
 
 public class CandidatesConsumer {
@@ -43,27 +47,24 @@ public class CandidatesConsumer {
 
         KafkaConsumer<Integer, Pair<Cluster, Boolean>> consumer = new KafkaConsumer<>(props);
 
-        consumer.subscribe(Collections.singletonList(DENSITIES_TOPIC));
+        consumer.subscribe(Collections.singletonList(CANDIDATES_TOPIC));
 
         while (true){
             try {
-                BufferedWriter writer = Files.newBufferedWriter(Paths.get("./candidates.csv"));
-                CSVPrinter csvPrinter = new CSVPrinter(writer, CSVFormat.DEFAULT);
+                BufferedWriter writer = Files.newBufferedWriter(Paths.get("./candidates.csv"), StandardCharsets.UTF_8, StandardOpenOption.APPEND);
 
                 ConsumerRecords<Integer, Pair<Cluster, Boolean>> records = consumer.poll(Duration.ofSeconds(1));
 
                 for (ConsumerRecord<Integer,Pair<Cluster, Boolean>> record : records) {
                     if(record.value().getRight()) {
-                        ArrayList<String> point = new ArrayList<>();
-                        point.add(record.key() + "");
+                        String line = record.key() + "";
                         for(double d : record.value().getLeft().centroid) {
-                            point.add(d + "");
+                            line += "," + d;
                         }
-
-                        csvPrinter.printRecord(point);
+                        writer.append(line + "\n");
                     }
                 }
-                csvPrinter.flush();
+                writer.close();
             } catch (IOException e) {
                 e.printStackTrace();
             }
