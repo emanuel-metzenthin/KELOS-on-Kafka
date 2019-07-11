@@ -69,7 +69,7 @@ public class KNearestPointsProcessorSupplier implements ProcessorSupplier<Intege
 
                     for (KeyValueIterator<Integer, Cluster> it = this.pointClusters.all(); it.hasNext();){
                         KeyValue<Integer, Cluster> kv = it.next();
-                        Pair<Cluster, Boolean> pair = Pair.of(kv.value, true);
+                        Pair<Cluster, Boolean> pair = Pair.of(kv.value, false);
                         context.forward(kv.key, pair);
 
                         this.pointClusters.delete(kv.key);
