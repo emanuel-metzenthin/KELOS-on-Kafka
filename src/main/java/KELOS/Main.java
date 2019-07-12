@@ -22,10 +22,11 @@ public class Main {
     public static final String CLUSTER_ASSIGNMENT_TOPIC = "cluster-assignments";
     public static final String CLUSTER_TOPIC = "clusters";
     public static final String DENSITIES_TOPIC = "densities";
+    public static final String CANDIDATES_TOPIC = "candidates";
     public static final String PRUNED_CLUSTERS_TOPIC = "pruned_clusters";
     public static final String OUTLIERS_TOPIC = "outliers";
     public static final int AGGREGATION_WINDOWS = 1;
-    public static final double DISTANCE_THRESHOLD = 0.5;
+    public static final double DISTANCE_THRESHOLD = 0.095;
     public static final Duration WINDOW_TIME = Duration.ofSeconds(10);
     public static final int K = 5;
     public static final int N = 5;
@@ -116,6 +117,8 @@ public class Main {
                         Serdes.Integer(),
                         new ClusterSerde()),
                 "FilterProcessor");
+
+        builder.addSink("OutlierCandidatesSink", CANDIDATES_TOPIC, new IntegerSerializer(), new IntBoolPairSerializer(), "FilterProcessor");
 
         builder.addProcessor("KNNPointsProcessor", new KNearestPointsProcessorSupplier(), "FilterProcessor");
 
