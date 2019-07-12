@@ -1,5 +1,6 @@
 package KELOS.Serdes;
 
+import KELOS.Cluster;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.kafka.common.serialization.Deserializer;
 
@@ -9,28 +10,28 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Map;
 
-public class PairDeserializer implements Deserializer<Pair<Integer, ArrayList<Double>>> {
+public class PairDeserializer implements Deserializer<Pair<Cluster, Integer>> {
     @Override
     public void configure(Map<String, ?> map, boolean b) {
 
     }
 
     @Override
-    public Pair<Integer, ArrayList<Double>> deserialize(String topic, byte[] bytes) {
+    public Pair<Cluster, Integer> deserialize(String topic, byte[] bytes) {
 
         ByteArrayInputStream bais = new ByteArrayInputStream(bytes);
         DataInputStream in = new DataInputStream(bais);
-        ArrayList<Double> list = new ArrayList<>();
+        ClusterDeserializer d = new ClusterDeserializer();
+        Cluster c;
 
         try{
-            int index = in.readInt();
+            byte[] b = new byte[bytes.length - 4];
+            bais.read(b, 0, bytes.length - 4);
+            c = d.deserialize("", bytes);
 
-            while (in.available() > 0) {
-                double element = in.readDouble();
-                list.add(element);
-            }
+            int flag = in.readInt();
 
-            return Pair.of(index, list);
+            return Pair.of(c, flag);
         } catch (IOException e){
             e.printStackTrace();
         }

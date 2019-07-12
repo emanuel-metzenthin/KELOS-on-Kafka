@@ -15,7 +15,7 @@ import java.util.ArrayList;
 
 import static KELOS.Main.WINDOW_TIME;
 
-public class PointDensityEstimationProcessorSupplier implements ProcessorSupplier<Integer, Pair<Cluster, Boolean>> {
+public class PointDensityEstimationProcessorSupplier implements ProcessorSupplier<Integer, Pair<Cluster, Integer>> {
     /*
         Estimates the density for each Cluster.
      */
@@ -25,10 +25,9 @@ public class PointDensityEstimationProcessorSupplier implements ProcessorSupplie
         this.storeName = storeName;
     }
 
-    private class DensityEstimationProcessor implements Processor<Integer, Pair<Cluster, Boolean>> {
+    private class DensityEstimationProcessor implements Processor<Integer, Pair<Cluster, Integer>> {
         private ProcessorContext context;
-        private KeyValueStore<Integer, Cluster> windowPoints;
-        private KeyValueStore<Integer, Cluster> candidates;
+        private KeyValueStore<Integer, Pair<Cluster, Integer>> windowPoints;
         String storeName;
 
         DensityEstimationProcessor(String storeName){
@@ -38,26 +37,31 @@ public class PointDensityEstimationProcessorSupplier implements ProcessorSupplie
         @Override
         public void init(ProcessorContext context) {
             this.context = context;
-            this.windowPoints = (KeyValueStore<Integer, Cluster>) context.getStateStore("PointDensityBuffer");
-            this.candidates = (KeyValueStore<Integer, Cluster>) context.getStateStore("PointDensityCandidates");
+            this.windowPoints = (KeyValueStore<Integer, Pair<Cluster, Integer>>) context.getStateStore("PointDensityBuffer");
 
             this.context.schedule(WINDOW_TIME, PunctuationType.STREAM_TIME, timestamp -> {
                 System.out.println("Point density estimation at: " + timestamp);
-                for(KeyValueIterator<Integer, Cluster> it = this.candidates.all(); it.hasNext();) {
-                    KeyValue<Integer, Cluster> kv = it.next();
+                for(KeyValueIterator<Integer, Pair<Cluster, Integer>> it = this.windowPoints.all(); it.hasNext();) {
+                    KeyValue<Integer, Pair<Cluster, Integer>> kv = it.next();
                     Integer key = kv.key;
-                    Cluster cluster = kv.value;
+
+                    // Don't compute density for neighbors of neighbors
+                    if (kv.value.getRight() == 2){
+                        continue;
+                    }
+
+                    Cluster cluster = kv.value.getLeft();
 
                     ArrayList<Cluster> kNNs = new ArrayList<>();
 
                     for(int i : cluster.knnIds) {
                         if (this.windowPoints.get(i) != null) {
-                            kNNs.add(this.windowPoints.get(i));
+                            kNNs.add(this.windowPoints.get(i).getLeft());
                         }
                     }
 
                     if (kNNs.size() <= 1) {
-                        return;
+                        continue;
                     }
 
                     int k = kNNs.size();
@@ -134,13 +138,11 @@ public class PointDensityEstimationProcessorSupplier implements ProcessorSupplie
 //                        System.out.println("Dens forward " + kv.key);
 //                    }
                     System.out.println("Point density for " + key);
-                    this.context.forward(key, cluster);
-
-                    this.candidates.delete(key);
+                    this.context.forward(key, Pair.of(cluster, kv.value.getRight()));
                 }
 
-                for(KeyValueIterator<Integer, Cluster> i = this.windowPoints.all(); i.hasNext();) {
-                    KeyValue<Integer, Cluster> cluster = i.next();
+                for(KeyValueIterator<Integer, Pair<Cluster, Integer>> i = this.windowPoints.all(); i.hasNext();) {
+                    KeyValue<Integer, Pair<Cluster, Integer>> cluster = i.next();
 
                     this.windowPoints.delete(cluster.key);
                 }
@@ -148,14 +150,9 @@ public class PointDensityEstimationProcessorSupplier implements ProcessorSupplie
         }
 
         @Override
-        public void process(Integer key, Pair<Cluster, Boolean> cluster) {
-//            System.out.println("Density process " + key);
-            if (cluster.getRight()){
-                this.candidates.put(key, cluster.getLeft());
-            }
-            else {
-                this.windowPoints.put(key, cluster.getLeft());
-            }
+        public void process(Integer key, Pair<Cluster, Integer> cluster) {
+            System.out.println("Point density process " + key);
+            this.windowPoints.put(key, cluster);
         }
 
         @Override
@@ -164,7 +161,7 @@ public class PointDensityEstimationProcessorSupplier implements ProcessorSupplie
     }
 
     @Override
-    public Processor<Integer, Pair<Cluster, Boolean>> get() {
+    public Processor<Integer, Pair<Cluster, Integer>> get() {
         return new DensityEstimationProcessor(this.storeName);
     }
 }

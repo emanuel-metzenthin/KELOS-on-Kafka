@@ -148,17 +148,17 @@ public class Main {
                 Stores.keyValueStoreBuilder(
                         Stores.inMemoryKeyValueStore("PointDensityBuffer"),
                         Serdes.Integer(),
-                        new ClusterSerde()),
+                        new PairSerde()),
                 "PointDensityEstimatorProcessor");
 
         builder.addStateStore(
                 Stores.keyValueStoreBuilder(
                         Stores.inMemoryKeyValueStore("PointsWithDensities"),
                         Serdes.Integer(),
-                        new ClusterSerde()),
+                        new PairSerde()),
                 "PointPruningProcessor");
 
-        builder.addSink("Outliers", OUTLIERS_TOPIC, new ArrayListSerializer(), new DoubleSerializer(), "PointPruningProcessor");
+        builder.addSink("Outliers", OUTLIERS_TOPIC, new IntegerSerializer(), new DoubleSerializer(), "PointPruningProcessor");
 
         shutdown(builder, props);
     }
