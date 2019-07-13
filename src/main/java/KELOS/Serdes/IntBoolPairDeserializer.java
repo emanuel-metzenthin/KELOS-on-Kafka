@@ -3,7 +3,6 @@ package KELOS.Serdes;
 import KELOS.Cluster;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.kafka.common.serialization.Deserializer;
-
 import java.io.ByteArrayInputStream;
 import java.io.DataInputStream;
 import java.io.IOException;
@@ -20,17 +19,19 @@ public class IntBoolPairDeserializer implements Deserializer<Pair<Cluster, Boole
 
         ByteArrayInputStream bais = new ByteArrayInputStream(bytes);
         DataInputStream in = new DataInputStream(bais);
-        ClusterDeserializer d = new ClusterDeserializer();
-        Cluster c;
+        ClusterDeserializer deserializer = new ClusterDeserializer();
 
         try{
-            byte[] b = new byte[bytes.length - 4];
-            bais.read(b, 0, bytes.length - 4);
-            c = d.deserialize("", bytes);
+            int dimensions = in.readInt();
+            int k = in.readInt();
+            bais.reset();
+            int clusterSize = 4 + 4 + 4 + 4 + 3 * 8 + 5 * 8 * dimensions + 4 * k; // Size of one cluster object in bytes
+            byte[] b = new byte[clusterSize];
+            bais.read(b, 0, clusterSize);
 
-            boolean flag = in.readBoolean();
+            Cluster c = deserializer.deserialize("", b);
 
-            return Pair.of(c, flag);
+            return Pair.of(c, in.readBoolean());
         } catch (IOException e){
             e.printStackTrace();
         }
