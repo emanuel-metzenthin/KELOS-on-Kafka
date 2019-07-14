@@ -91,8 +91,10 @@ public class PointPruningProcessorSupplier implements ProcessorSupplier<Integer,
 
 
                     for (Pair<Integer, Double> t : queue) {
-                        this.context.forward(t.getLeft(), t.getRight());
-                        System.out.println("Outlier: " + t.getLeft() + " KLOME: " + t.getRight());
+                        int key = t.getLeft();
+                        Cluster cluster = this.pointWithDensities.get(key).getLeft();
+                        this.context.forward(key, cluster);
+                        System.out.println("Outlier: " + key + " KLOME: " + t.getRight());
                     }
 
                     context.commit();

@@ -161,7 +161,7 @@ public class Main {
                         new PairSerde()),
                 "PointPruningProcessor");
 
-        builder.addSink("Outliers", OUTLIERS_TOPIC, new IntegerSerializer(), new DoubleSerializer(), "PointPruningProcessor");
+        builder.addSink("Outliers", OUTLIERS_TOPIC, new IntegerSerializer(), new ClusterSerializer(), "PointPruningProcessor");
 
         shutdown(builder, props);
     }
