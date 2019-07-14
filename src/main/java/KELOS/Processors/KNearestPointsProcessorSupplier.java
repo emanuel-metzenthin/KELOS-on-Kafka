@@ -70,21 +70,24 @@ public class KNearestPointsProcessorSupplier implements ProcessorSupplier<Intege
                         Cluster cluster = this.pointClusters.get(candidate);
 
                         for (int i : cluster.knnIds){
-                            if (!candidates.contains(i)){
-                                candidateKNNs.add(i);
-
-                                // Make sure each point is in at most one set
-                                knnKNNs.remove(i);
+                            if (candidates.contains(i)){
+                                continue;
                             }
+
+                            candidateKNNs.add(i);
+
+                            // Make sure each point is in at most one set
+                            knnKNNs.remove(i);
 
                             Cluster c = this.pointClusters.get(i);
                             c.calculateKNearestNeighbors(this.pointClusters.all());
                             this.pointClusters.put(i, c);
 
                             for (int n : c.knnIds) {
-                                if (!candidates.contains(n) && !candidateKNNs.contains(n)){
-                                    knnKNNs.add(n);
+                                if (candidates.contains(n) || candidateKNNs.contains(n)){
+                                    continue;
                                 }
+                                knnKNNs.add(n);
 
                                 Cluster neighborsNeighbor = this.pointClusters.get(n);
                                 neighborsNeighbor.calculateKNearestNeighbors(this.pointClusters.all());
