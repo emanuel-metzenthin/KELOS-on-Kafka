@@ -55,16 +55,22 @@ public class CandidatesConsumer {
 
                 ConsumerRecords<Integer, Pair<Cluster, Boolean>> records = consumer.poll(Duration.ofSeconds(1));
 
+                CSVPrinter csvPrinter = new CSVPrinter(writer, CSVFormat.DEFAULT);
+
                 for (ConsumerRecord<Integer,Pair<Cluster, Boolean>> record : records) {
+
                     if(record.value().getRight()) {
-                        String line = record.key() + "";
-                        for(double d : record.value().getLeft().centroid) {
-                            line += "," + d;
+                        ArrayList<String> rec = new ArrayList<>();
+                        rec.add(record.key() + "");
+
+                        for(Double d : record.value().getLeft().centroid) {
+                            rec.add(d + "");
                         }
-                        writer.append(line + "\n");
+
+                        csvPrinter.printRecord(rec);
                     }
                 }
-                writer.close();
+                csvPrinter.flush();
             } catch (IOException e) {
                 e.printStackTrace();
             }
