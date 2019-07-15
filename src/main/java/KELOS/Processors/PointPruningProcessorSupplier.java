@@ -76,7 +76,15 @@ public class PointPruningProcessorSupplier implements ProcessorSupplier<Integer,
 
                         double knnStddev = Math.sqrt(knnVariance);
 
-                        double klome = (point.value.getLeft().density - knnMean) / knnStddev;
+                        double klome;
+
+                        // Can happen if all KNNs have the exact same coordinates as the point itself
+                        if (knnStddev == 0){
+                            klome = Double.MAX_VALUE;
+                        }
+                        else {
+                            klome = (point.value.getLeft().density - knnMean) / knnStddev;
+                        }
 
                         ArrayList<Double> pointArrayList = new ArrayList<>();
                         for(int k=0; k<point.value.getLeft().centroid.length; k++) {
