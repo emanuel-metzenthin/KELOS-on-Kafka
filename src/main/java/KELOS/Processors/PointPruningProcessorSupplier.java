@@ -99,6 +99,7 @@ public class PointPruningProcessorSupplier implements ProcessorSupplier<Integer,
 
 
                     int count = 1;
+                    // TODO: We eventually need to find a better solution, because the iterator doesn't preserve the order
                     for (Pair<Integer, Double> t : queue) {
                         int key = t.getLeft();
                         Cluster cluster = this.pointWithDensities.get(key).getLeft();

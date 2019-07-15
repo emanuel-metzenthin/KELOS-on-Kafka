@@ -28,7 +28,7 @@ public class Main {
     public static final int AGGREGATION_WINDOWS = 1;
     public static final double DISTANCE_THRESHOLD = 0.095;
     public static final Duration WINDOW_TIME = Duration.ofSeconds(10);
-    public static final int K = 5;
+    public static final int K = 40;
     public static final int N = 5;
 
     public static void main(final String[] args) {
