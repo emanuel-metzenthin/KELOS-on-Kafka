@@ -24,6 +24,8 @@ public class ClusteringProcessorSupplier implements ProcessorSupplier<Integer, A
             private ProcessorContext context;
             private KeyValueStore<Integer, Cluster> tempClusters;
             private KeyValueStore<Integer, Triple<Integer, ArrayList<Double>, Long>> clusterAssignments;
+            private long benchmarkTime = 0;
+            private int benchmarks = 0;
 
             @Override
             public void init(ProcessorContext context) {
@@ -35,6 +37,7 @@ public class ClusteringProcessorSupplier implements ProcessorSupplier<Integer, A
 
                 // Emit cluster meta data after sub-window has been processed
                 this.context.schedule(WINDOW_TIME, PunctuationType.STREAM_TIME, timestamp -> {
+                    long start = System.currentTimeMillis();
                      // System.out.println("Clustering window" + timestamp);
                     for(KeyValueIterator<Integer, Cluster> i = this.tempClusters.all(); i.hasNext();) {
                         KeyValue<Integer, Cluster> cluster = i.next();
@@ -54,6 +57,16 @@ public class ClusteringProcessorSupplier implements ProcessorSupplier<Integer, A
 
                         this.tempClusters.put(cluster.key, emptyCluster);
                     }
+
+                    if(benchmarkTime == 0) {
+                        benchmarkTime = System.currentTimeMillis() - start;
+                    } else {
+                        benchmarkTime = (benchmarks * benchmarkTime + (System.currentTimeMillis() - start)) / (benchmarks + 1);
+                    }
+
+                    benchmarks++;
+
+                    System.out.println("Clustering: " + benchmarkTime);
                 });
             }
 

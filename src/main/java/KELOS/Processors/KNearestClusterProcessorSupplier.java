@@ -28,6 +28,8 @@ public class KNearestClusterProcessorSupplier implements ProcessorSupplier<Integ
         return new Processor<Integer, Cluster>() {
             private ProcessorContext context;
             private KeyValueStore<Integer, Cluster> clusters;
+            private long benchmarkTime = 0;
+            private int benchmarks = 0;
 
             @Override
             public void init(ProcessorContext context) {
@@ -35,6 +37,7 @@ public class KNearestClusterProcessorSupplier implements ProcessorSupplier<Integ
                 this.clusters = (KeyValueStore<Integer, Cluster>) context.getStateStore("ClusterBuffer");
 
                 this.context.schedule(WINDOW_TIME, PunctuationType.STREAM_TIME, timestamp -> {
+                    long start = System.currentTimeMillis();
                 /*
                 HashMap<Integer, Cluster> uniqueClusters = new HashMap<>();
                 for(KeyValueIterator<Windowed<Integer>, Cluster> i = this.clusters.all(); i.hasNext();) {
@@ -48,7 +51,7 @@ public class KNearestClusterProcessorSupplier implements ProcessorSupplier<Integ
                     String dateFormatted = formatter.format(date);
                     String systime = LocalDateTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss.SSS"));
 
-                    System.out.println("New KNN window: " + dateFormatted + " System time : " + systime);
+                    // System.out.println("New KNN window: " + dateFormatted + " System time : " + systime);
 
                     for (KeyValueIterator<Integer, Cluster> it = this.clusters.all(); it.hasNext(); ) {
                         KeyValue<Integer, Cluster> kv = it.next();
@@ -56,7 +59,7 @@ public class KNearestClusterProcessorSupplier implements ProcessorSupplier<Integ
 
                         cluster.calculateKNearestNeighbors(this.clusters.all());
 
-                        System.out.println("KNN forward: " + kv.key);
+                        // System.out.println("KNN forward: " + kv.key);
 
                         context.forward(kv.key, cluster);
                         context.commit();
@@ -66,6 +69,16 @@ public class KNearestClusterProcessorSupplier implements ProcessorSupplier<Integ
                         KeyValue<Integer, Cluster> kv = it.next();
                         this.clusters.delete(kv.key);
                     }
+
+                    if(benchmarkTime == 0) {
+                        benchmarkTime = System.currentTimeMillis() - start;
+                    } else {
+                        benchmarkTime = (benchmarks * benchmarkTime + (System.currentTimeMillis() - start)) / (benchmarks + 1);
+                    }
+
+                    benchmarks++;
+
+                    System.out.println("KNN Cluster: " + benchmarkTime);
                 });
             }
 

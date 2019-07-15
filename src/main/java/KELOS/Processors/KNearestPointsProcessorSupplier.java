@@ -30,6 +30,8 @@ public class KNearestPointsProcessorSupplier implements ProcessorSupplier<Intege
             private ProcessorContext context;
             private KeyValueStore<Integer, Cluster> pointClusters;
             private KeyValueStore<Integer, Cluster> candidatePoints;
+            private long benchmarkTime = 0;
+            private int benchmarks = 0;
 
             @Override
             public void init(ProcessorContext context) {
@@ -38,6 +40,7 @@ public class KNearestPointsProcessorSupplier implements ProcessorSupplier<Intege
                 this.candidatePoints = (KeyValueStore<Integer, Cluster>) context.getStateStore("CandidatePoints");
 
                 this.context.schedule(WINDOW_TIME, PunctuationType.STREAM_TIME, timestamp -> {
+                    long start = System.currentTimeMillis();
                 /*
                 HashMap<Integer, Cluster> uniqueClusters = new HashMap<>();
                 for(KeyValueIterator<Windowed<Integer>, Cluster> i = this.clusters.all(); i.hasNext();) {
@@ -51,7 +54,7 @@ public class KNearestPointsProcessorSupplier implements ProcessorSupplier<Intege
                     String dateFormatted = formatter.format(date);
                     String systime = LocalDateTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss.SSS"));
 
-                    System.out.println("New KNN Points window: " + dateFormatted + " System time : " + systime);
+                    // System.out.println("New KNN Points window: " + dateFormatted + " System time : " + systime);
 
                     for (KeyValueIterator<Integer, Cluster> it = this.candidatePoints.all(); it.hasNext();){
                         KeyValue<Integer, Cluster> kv = it.next();
@@ -61,7 +64,7 @@ public class KNearestPointsProcessorSupplier implements ProcessorSupplier<Intege
 
                         Pair<Cluster, Boolean> pair = Pair.of(cluster, true);
                         context.forward(kv.key, pair);
-                        System.out.println("KNN Points forward: " + kv.key);
+                        // System.out.println("KNN Points forward: " + kv.key);
                         context.commit();
 
                         this.candidatePoints.delete(kv.key);
@@ -74,6 +77,16 @@ public class KNearestPointsProcessorSupplier implements ProcessorSupplier<Intege
 
                         this.pointClusters.delete(kv.key);
                     }
+
+                    if(benchmarkTime == 0) {
+                        benchmarkTime = System.currentTimeMillis() - start;
+                    } else {
+                        benchmarkTime = (benchmarks * benchmarkTime + (System.currentTimeMillis() - start)) / (benchmarks + 1);
+                    }
+
+                    benchmarks++;
+
+                    System.out.println("KNN Point: " + benchmarkTime);
                 });
             }
 
