@@ -60,7 +60,7 @@ public class DensityEstimationProcessorSupplier implements ProcessorSupplier<Int
                     }
 
                     if (kNNs.size() <= 1) {
-                        return;
+                        continue;
                     }
 
                     int k = kNNs.size();

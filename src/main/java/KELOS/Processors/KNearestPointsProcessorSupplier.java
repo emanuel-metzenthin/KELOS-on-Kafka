@@ -15,6 +15,7 @@ import java.text.SimpleDateFormat;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Date;
+import java.util.HashSet;
 import java.util.TimeZone;
 
 import static KELOS.Main.WINDOW_TIME;
@@ -54,26 +55,75 @@ public class KNearestPointsProcessorSupplier implements ProcessorSupplier<Intege
                     String dateFormatted = formatter.format(date);
                     String systime = LocalDateTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss.SSS"));
 
-                    // System.out.println("New KNN Points window: " + dateFormatted + " System time : " + systime);
+                    System.out.println("New KNN Points window: " + dateFormatted + " System time : " + systime);
+                    HashSet<Integer> candidates = new HashSet<>();
+                    HashSet<Integer> candidateKNNs = new HashSet<>();
+                    HashSet<Integer> knnKNNs = new HashSet<>();
 
-                    for (KeyValueIterator<Integer, Cluster> it = this.candidatePoints.all(); it.hasNext();){
+                    for (KeyValueIterator<Integer, Cluster> it = this.candidatePoints.all(); it.hasNext();) {
                         KeyValue<Integer, Cluster> kv = it.next();
                         Cluster cluster = kv.value;
 
                         cluster.calculateKNearestNeighbors(this.pointClusters.all());
 
-                        Pair<Cluster, Boolean> pair = Pair.of(cluster, true);
+                        candidates.add(kv.key);
+                        this.pointClusters.put(kv.key, cluster);
+
+                        Pair<Cluster, Integer> pair = Pair.of(cluster, 0);
                         context.forward(kv.key, pair);
-                        // System.out.println("KNN Points forward: " + kv.key);
-                        context.commit();
+                        System.out.println("KNN Points candidate forward: " + kv.key);
 
                         this.candidatePoints.delete(kv.key);
                     }
 
+                    for (int candidate : candidates){
+                        Cluster cluster = this.pointClusters.get(candidate);
+
+                        for (int i : cluster.knnIds){
+                            if (candidates.contains(i)){
+                                continue;
+                            }
+
+                            candidateKNNs.add(i);
+
+                            // Make sure each point is in at most one set
+                            knnKNNs.remove(i);
+
+                            Cluster c = this.pointClusters.get(i);
+                            c.calculateKNearestNeighbors(this.pointClusters.all());
+                            this.pointClusters.put(i, c);
+
+                            for (int n : c.knnIds) {
+                                if (candidates.contains(n) || candidateKNNs.contains(n)){
+                                    continue;
+                                }
+                                knnKNNs.add(n);
+
+                                Cluster neighborsNeighbor = this.pointClusters.get(n);
+                                neighborsNeighbor.calculateKNearestNeighbors(this.pointClusters.all());
+                                this.pointClusters.put(n, neighborsNeighbor);
+                            }
+                        }
+                    }
+
+                    for (int index : candidateKNNs){
+                        Cluster cluster = this.pointClusters.get(index);
+
+                        Pair<Cluster, Integer> pair = Pair.of(cluster, 1);
+                        context.forward(index, pair);
+                        System.out.println("KNN Points KNN forward: " + index);
+                    }
+
+                    for (int index : knnKNNs){
+                        Cluster cluster = this.pointClusters.get(index);
+
+                        Pair<Cluster, Integer> pair = Pair.of(cluster, 2);
+                        context.forward(index, pair);
+                        System.out.println("KNN Points neighbor KNN forward: " + index);
+                    }
+
                     for (KeyValueIterator<Integer, Cluster> it = this.pointClusters.all(); it.hasNext();){
                         KeyValue<Integer, Cluster> kv = it.next();
-                        Pair<Cluster, Boolean> pair = Pair.of(kv.value, false);
-                        context.forward(kv.key, pair);
 
                         this.pointClusters.delete(kv.key);
                     }
@@ -94,6 +144,7 @@ public class KNearestPointsProcessorSupplier implements ProcessorSupplier<Intege
             public void process(Integer key, Pair<Cluster, Boolean> cluster) {
                 if(cluster.getRight()) {
                     this.candidatePoints.put(key, cluster.getLeft());
+                    this.pointClusters.put(key, cluster.getLeft());
                 } else {
                     this.pointClusters.put(key, cluster.getLeft());
                 }

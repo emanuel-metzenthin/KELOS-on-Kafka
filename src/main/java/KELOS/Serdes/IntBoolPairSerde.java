@@ -6,18 +6,17 @@ import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serializer;
 
-import java.util.ArrayList;
 import java.util.Map;
 
 
-public class PairSerde implements Serde<Pair<Cluster, Integer>> {
+public class IntBoolPairSerde implements Serde<Pair<Cluster, Boolean>> {
 
-    private Serializer<Pair<Cluster, Integer>> serializer;
-    private Deserializer<Pair<Cluster, Integer>> deserializer;
+    private Serializer<Pair<Cluster, Boolean>> serializer;
+    private Deserializer<Pair<Cluster, Boolean>> deserializer;
 
-    public PairSerde(){
-        this.serializer = new PairSerializer();
-        this.deserializer = new PairDeserializer();
+    public IntBoolPairSerde(){
+        this.serializer = new IntBoolPairSerializer();
+        this.deserializer = new IntBoolPairDeserializer();
     }
 
     @Override
@@ -31,12 +30,12 @@ public class PairSerde implements Serde<Pair<Cluster, Integer>> {
     }
 
     @Override
-    public Serializer<Pair<Cluster, Integer>> serializer() {
+    public Serializer<Pair<Cluster, Boolean>> serializer() {
         return serializer;
     }
 
     @Override
-    public Deserializer<Pair<Cluster, Integer>> deserializer() {
+    public Deserializer<Pair<Cluster, Boolean>> deserializer() {
         return deserializer;
     }
 }
