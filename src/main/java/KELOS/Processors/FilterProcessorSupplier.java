@@ -30,6 +30,8 @@ public class FilterProcessorSupplier implements ProcessorSupplier<Integer, Clust
             private ProcessorContext context;
             private KeyValueStore<Integer, Cluster> topNClusters;
             private KeyValueStore<Integer, Triple<Integer, ArrayList<Double>, Long>> windowPoints;
+            private long benchmarkTime = 0;
+            private int benchmarks = 0;
 
             @Override
             public void init(ProcessorContext context) {
@@ -38,18 +40,20 @@ public class FilterProcessorSupplier implements ProcessorSupplier<Integer, Clust
                 this.windowPoints = (KeyValueStore<Integer, Triple<Integer, ArrayList<Double>, Long>>) context.getStateStore("ClusterAssignments");
 
                 this.context.schedule(WINDOW_TIME, PunctuationType.STREAM_TIME, timestamp -> {
+                    long start = System.currentTimeMillis();
+
                     Date date = new Date(timestamp);
                     DateFormat formatter = new SimpleDateFormat("HH:mm:ss.SSS");
                     formatter.setTimeZone(TimeZone.getTimeZone("Europe/Berlin"));
                     String dateFormatted = formatter.format(date);
                     String systime = LocalDateTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss.SSS"));
 
-                    System.out.println("New FILTER window: " + dateFormatted + " System time : " + systime);
+                    // System.out.println("New FILTER window: " + dateFormatted + " System time : " + systime);
 
                     for(KeyValueIterator<Integer, Cluster> i = this.topNClusters.all(); i.hasNext();) {
                         KeyValue<Integer, Cluster> cluster = i.next();
 
-                        System.out.println("TOP-N-Cluster: " + cluster.key);
+                        // System.out.println("TOP-N-Cluster: " + cluster.key);
                     }
 
                     // System.out.println("New Window");
@@ -66,7 +70,7 @@ public class FilterProcessorSupplier implements ProcessorSupplier<Integer, Clust
                             if (cluster != null){
                                 Pair<Cluster, Boolean> pair = Pair.of(singlePointCluster, true);
                                 this.context.forward(point.key, pair);
-                                System.out.println("Filter: " + point.key);
+                                // System.out.println("Filter: " + point.key);
                             }
                             else {
                                 Pair<Cluster, Boolean> pair = Pair.of(singlePointCluster, false);
@@ -82,6 +86,16 @@ public class FilterProcessorSupplier implements ProcessorSupplier<Integer, Clust
 
                         this.topNClusters.delete(cluster.key);
                     }
+
+                    if(benchmarkTime == 0) {
+                        benchmarkTime = System.currentTimeMillis() - start;
+                    } else {
+                        benchmarkTime = (benchmarks * benchmarkTime + (System.currentTimeMillis() - start)) / (benchmarks + 1);
+                    }
+
+                    benchmarks++;
+
+                    System.out.println("Filter: " + benchmarkTime);
                 });
             }
 

@@ -31,6 +31,8 @@ public class DensityEstimationProcessorSupplier implements ProcessorSupplier<Int
         private ProcessorContext context;
         private KeyValueStore<Integer, Cluster> clusters;
         String storeName;
+        private long benchmarkTime = 0;
+        private int benchmarks = 0;
 
         DensityEstimationProcessor(String storeName){
             this.storeName = storeName;
@@ -42,7 +44,8 @@ public class DensityEstimationProcessorSupplier implements ProcessorSupplier<Int
             this.clusters = (KeyValueStore<Integer, Cluster>) context.getStateStore(this.storeName);
 
             this.context.schedule(WINDOW_TIME, PunctuationType.STREAM_TIME, timestamp -> {
-                System.out.println("Density estimation at: " + timestamp);
+                long start = System.currentTimeMillis();
+                // System.out.println("Density estimation at: " + timestamp);
                 for(KeyValueIterator<Integer, Cluster> it = this.clusters.all(); it.hasNext();) {
                     KeyValue<Integer, Cluster> kv = it.next();
                     Integer key = kv.key;
@@ -133,7 +136,7 @@ public class DensityEstimationProcessorSupplier implements ProcessorSupplier<Int
 //                    if(this.storeName == "PointDensityBuffer"){
 //                        System.out.println("Dens forward " + kv.key);
 //                    }
-                    System.out.println("Density for " + key);
+                    // System.out.println("Density for " + key);
                     this.context.forward(key, cluster);
                 }
 
@@ -142,6 +145,16 @@ public class DensityEstimationProcessorSupplier implements ProcessorSupplier<Int
 
                     this.clusters.delete(cluster.key);
                 }
+
+                if(benchmarkTime == 0) {
+                    benchmarkTime = System.currentTimeMillis() - start;
+                } else {
+                    benchmarkTime = (benchmarks * benchmarkTime + (System.currentTimeMillis() - start)) / (benchmarks + 1);
+                }
+
+                benchmarks++;
+
+                // System.out.println("Density: " + benchmarkTime);
             });
         }
 

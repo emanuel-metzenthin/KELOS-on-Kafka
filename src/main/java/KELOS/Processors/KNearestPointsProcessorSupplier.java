@@ -31,6 +31,8 @@ public class KNearestPointsProcessorSupplier implements ProcessorSupplier<Intege
             private ProcessorContext context;
             private KeyValueStore<Integer, Cluster> pointClusters;
             private KeyValueStore<Integer, Cluster> candidatePoints;
+            private long benchmarkTime = 0;
+            private int benchmarks = 0;
 
             @Override
             public void init(ProcessorContext context) {
@@ -39,6 +41,14 @@ public class KNearestPointsProcessorSupplier implements ProcessorSupplier<Intege
                 this.candidatePoints = (KeyValueStore<Integer, Cluster>) context.getStateStore("CandidatePoints");
 
                 this.context.schedule(WINDOW_TIME, PunctuationType.STREAM_TIME, timestamp -> {
+                    long start = System.currentTimeMillis();
+                /*
+                HashMap<Integer, Cluster> uniqueClusters = new HashMap<>();
+                for(KeyValueIterator<Windowed<Integer>, Cluster> i = this.clusters.all(); i.hasNext();) {
+                    KeyValue<Windowed<Integer>, Cluster> cluster = i.next();
+                    uniqueClusters.put(cluster.key.key(), cluster.value);
+                }
+                */
                     Date date = new Date(timestamp);
                     DateFormat formatter = new SimpleDateFormat("HH:mm:ss.SSS");
                     formatter.setTimeZone(TimeZone.getTimeZone("Europe/Berlin"));
@@ -117,6 +127,16 @@ public class KNearestPointsProcessorSupplier implements ProcessorSupplier<Intege
 
                         this.pointClusters.delete(kv.key);
                     }
+
+                    if(benchmarkTime == 0) {
+                        benchmarkTime = System.currentTimeMillis() - start;
+                    } else {
+                        benchmarkTime = (benchmarks * benchmarkTime + (System.currentTimeMillis() - start)) / (benchmarks + 1);
+                    }
+
+                    benchmarks++;
+
+                    System.out.println("KNN Point: " + benchmarkTime);
                 });
             }
 

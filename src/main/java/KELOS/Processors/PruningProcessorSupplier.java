@@ -43,6 +43,8 @@ public class PruningProcessorSupplier implements ProcessorSupplier<Integer, Clus
         private KeyValueStore<Integer, Cluster> topNClusters;
         String densityStoreName;
         String topNStoreName;
+        private long benchmarkTime = 0;
+        private int benchmarks = 0;
 
         PruningProcessor(String densityStoreName, String topNStoreName){
             this.densityStoreName = densityStoreName;
@@ -57,6 +59,7 @@ public class PruningProcessorSupplier implements ProcessorSupplier<Integer, Clus
 
 
             this.context.schedule(WINDOW_TIME, PunctuationType.STREAM_TIME, timestamp -> {
+                long start = System.currentTimeMillis();
                 MinMaxPriorityQueue<Triple<Integer, Double, Double>> queue = MinMaxPriorityQueue
                         .orderedBy(new KlomeComparator())
                         .maximumSize(N)
@@ -122,6 +125,16 @@ public class PruningProcessorSupplier implements ProcessorSupplier<Integer, Clus
                 }
 
                 context.commit();
+
+                if(benchmarkTime == 0) {
+                    benchmarkTime = System.currentTimeMillis() - start;
+                } else {
+                    benchmarkTime = (benchmarks * benchmarkTime + (System.currentTimeMillis() - start)) / (benchmarks + 1);
+                }
+
+                benchmarks++;
+
+                System.out.println("Pruning Cluster: " + benchmarkTime);
             });
         }
 

@@ -40,7 +40,7 @@ public class PointDensityEstimationProcessorSupplier implements ProcessorSupplie
             this.windowPoints = (KeyValueStore<Integer, Pair<Cluster, Integer>>) context.getStateStore("PointDensityBuffer");
 
             this.context.schedule(WINDOW_TIME, PunctuationType.STREAM_TIME, timestamp -> {
-                System.out.println("Point density estimation at: " + timestamp);
+                //System.out.println("Point density estimation at: " + timestamp);
                 for(KeyValueIterator<Integer, Pair<Cluster, Integer>> it = this.windowPoints.all(); it.hasNext();) {
                     KeyValue<Integer, Pair<Cluster, Integer>> kv = it.next();
                     Integer key = kv.key;
@@ -137,7 +137,7 @@ public class PointDensityEstimationProcessorSupplier implements ProcessorSupplie
 //                    if(this.storeName == "PointDensityBuffer"){
 //                        System.out.println("Dens forward " + kv.key);
 //                    }
-                    System.out.println("Point density for " + key);
+                    // System.out.println("Point density for " + key);
                     this.context.forward(key, Pair.of(cluster, kv.value.getRight()));
                 }
 
