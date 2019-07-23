@@ -26,7 +26,7 @@ public class Main {
     public static final String PRUNED_CLUSTERS_TOPIC = "pruned_clusters";
     public static final String OUTLIERS_TOPIC = "outliers";
     public static final int AGGREGATION_WINDOWS = 1;
-    public static final double DISTANCE_THRESHOLD = 0.095;
+    public static final double DISTANCE_THRESHOLD = 0.5;
     public static final Duration WINDOW_TIME = Duration.ofSeconds(10);
     public static final int K = 40;
     public static final int N = 5;

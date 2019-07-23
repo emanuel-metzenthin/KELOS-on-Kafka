@@ -1,13 +1,19 @@
 package KELOS;
 
 import KELOS.Serdes.TripleDeserializer;
-import org.apache.commons.lang3.tuple.Pair;
+import org.apache.commons.lang3.tuple.Triple;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.common.serialization.IntegerDeserializer;
 
+import java.io.BufferedWriter;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -33,20 +39,26 @@ public class AssignmentConsumer {
         props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, TripleDeserializer.class.getName());
         props.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
 
-        KafkaConsumer<Integer, Pair<Integer, ArrayList<Double>>> consumer = new KafkaConsumer<>(props);
+        KafkaConsumer<Integer, Triple<Integer, ArrayList<Double>, Double>> consumer = new KafkaConsumer<>(props);
 
         consumer.subscribe(Collections.singletonList(CLUSTER_ASSIGNMENT_TOPIC));
 
         while (true){
-            ConsumerRecords<Integer, Pair<Integer, ArrayList<Double>>> records = consumer.poll(Duration.ofSeconds(1));
+            try {
+                BufferedWriter writer = Files.newBufferedWriter(Paths.get("./assignments.csv"), StandardCharsets.UTF_8, StandardOpenOption.APPEND);
 
-            for (ConsumerRecord<Integer, Pair<Integer, ArrayList<Double>>> record : records) {
-                System.out.print("\n KELOS.Point: " + record.key() + ", Cluster: " + record.value().getLeft() + ", [");
+                ConsumerRecords<Integer, Triple<Integer, ArrayList<Double>, Double>> records = consumer.poll(Duration.ofSeconds(1));
 
-                for (double d : record.value().getRight()){
-                    System.out.print("" + d+ ", ");
+                for (ConsumerRecord<Integer, Triple<Integer, ArrayList<Double>, Double>> record : records) {
+                    String line = record.key() + ", " + record.value().getLeft();
+                    for(double d : record.value().getMiddle()) {
+                        line += "," + d;
+                    }
+                    writer.append(line + "\n");
                 }
-                System.out.print("]");
+                writer.close();
+            } catch (IOException e) {
+                e.printStackTrace();
             }
         }
     }
