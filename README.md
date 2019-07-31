@@ -9,7 +9,7 @@ KELOS (Scalable Kernel Density Estimation-based Local Outlier Detection over Lar
 
 # 4 Related work
 
-# 5 Archtitecture
+# 5 Architecture
 
 ## 5.1 Data Abstractor
 
