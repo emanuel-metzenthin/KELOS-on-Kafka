@@ -20,6 +20,9 @@ colors = {0:'white', 2:'yellow', 1:'red'}
 plt.scatter(data[0], data[1], c=data[2].apply(lambda x: colors[x]))
 plt.show()
 
+plt.scatter(data[0].iloc[outliers[0]], data[1].iloc[outliers[0]], c=zeros[0].iloc[outliers[0]].apply(lambda x: colors[x]))
+plt.show()
+
 plt.scatter(data[0].iloc[candidates[0]], data[1].iloc[candidates[0]], c=zeros[0].iloc[candidates[0]].apply(lambda x: colors[x]))
 plt.show()
 

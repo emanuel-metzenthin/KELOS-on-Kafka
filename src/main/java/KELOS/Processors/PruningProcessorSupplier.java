@@ -62,7 +62,7 @@ public class PruningProcessorSupplier implements ProcessorSupplier<Integer, Clus
                 long start = System.currentTimeMillis();
                 MinMaxPriorityQueue<Triple<Integer, Double, Double>> queue = MinMaxPriorityQueue
                         .orderedBy(new KlomeComparator())
-                        .maximumSize(N)
+                        // .maximumSize(N)
                         .create();
 
                 // System.out.println("Pruning at " + timestamp);
@@ -95,14 +95,16 @@ public class PruningProcessorSupplier implements ProcessorSupplier<Integer, Clus
                     double klomeHigh = (cluster.value.maxDensityBound - knnMean) / knnStddev;
                     Triple<Integer, Double, Double> triple = Triple.of(cluster.key, klomeLow, klomeHigh);
 
+                    System.out.println("Cluster: " + cluster.key + " KLOMELow: " + klomeLow + " KLOMEHigh: " + klomeHigh);
+
                     if (queue.size() < N){
                         queue.add(triple);
                     }
-                    else if (klomeHigh < queue.peek().getMiddle()){
-                        queue.poll();
+                    else if (klomeHigh < queue.peekLast().getMiddle()){
+                        queue.pollLast();
                         queue.add(triple);
                     }
-                    else if (klomeLow <= queue.peek().getRight()){
+                    else if (klomeLow <= queue.peekLast().getRight()){
                         queue.add(triple);
                     }
                 }
@@ -114,6 +116,7 @@ public class PruningProcessorSupplier implements ProcessorSupplier<Integer, Clus
                 }*/
 
                 for (Triple<Integer, Double, Double> t : queue) {
+                    System.out.println("TOPNCluster: " + t.getLeft());
                     this.context.forward(t.getLeft(), this.clusterWithDensities.get(t.getLeft()));
                     // this.topNClusters.put(t.getLeft(), this.clusterWithDensities.get(t.getLeft()));
                 }
