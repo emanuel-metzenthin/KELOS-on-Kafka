@@ -64,7 +64,7 @@ public class KNearestPointsProcessorSupplier implements ProcessorSupplier<Intege
                         KeyValue<Integer, Cluster> kv = it.next();
                         Cluster cluster = kv.value;
 
-                        cluster.calculateKNearestNeighbors(this.pointClusters.all());
+                        cluster.calculateKNearestNeighbors(this.pointClusters.all(), kv.key);
 
                         candidates.add(kv.key);
                         this.pointClusters.put(kv.key, cluster);
@@ -90,7 +90,7 @@ public class KNearestPointsProcessorSupplier implements ProcessorSupplier<Intege
                             knnKNNs.remove(i);
 
                             Cluster c = this.pointClusters.get(i);
-                            c.calculateKNearestNeighbors(this.pointClusters.all());
+                            c.calculateKNearestNeighbors(this.pointClusters.all(), i);
                             this.pointClusters.put(i, c);
 
                             for (int n : c.knnIds) {
@@ -100,7 +100,7 @@ public class KNearestPointsProcessorSupplier implements ProcessorSupplier<Intege
                                 knnKNNs.add(n);
 
                                 Cluster neighborsNeighbor = this.pointClusters.get(n);
-                                neighborsNeighbor.calculateKNearestNeighbors(this.pointClusters.all());
+                                neighborsNeighbor.calculateKNearestNeighbors(this.pointClusters.all(), n);
                                 this.pointClusters.put(n, neighborsNeighbor);
                             }
                         }

@@ -57,7 +57,7 @@ public class KNearestClusterProcessorSupplier implements ProcessorSupplier<Integ
                         KeyValue<Integer, Cluster> kv = it.next();
                         Cluster cluster = kv.value;
 
-                        cluster.calculateKNearestNeighbors(this.clusters.all());
+                        cluster.calculateKNearestNeighbors(this.clusters.all(), kv.key);
 
                         // System.out.println("KNN forward: " + kv.key);
 

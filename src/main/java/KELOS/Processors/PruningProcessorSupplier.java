@@ -60,10 +60,12 @@ public class PruningProcessorSupplier implements ProcessorSupplier<Integer, Clus
 
             this.context.schedule(WINDOW_TIME, PunctuationType.STREAM_TIME, timestamp -> {
                 long start = System.currentTimeMillis();
-                MinMaxPriorityQueue<Triple<Integer, Double, Double>> queue = MinMaxPriorityQueue
+                /*MinMaxPriorityQueue<Triple<Integer, Double, Double>> queue = MinMaxPriorityQueue
                         .orderedBy(new KlomeComparator())
                         // .maximumSize(N)
-                        .create();
+                        .create();*/
+
+                ArrayList<Triple<Integer, Double, Double>> clusters_with_klome = new ArrayList<>();
 
                 // System.out.println("Pruning at " + timestamp);
                 for(KeyValueIterator<Integer, Cluster> i = this.clusterWithDensities.all(); i.hasNext();) {
@@ -97,7 +99,9 @@ public class PruningProcessorSupplier implements ProcessorSupplier<Integer, Clus
 
                     System.out.println("Cluster: " + cluster.key + " KLOMELow: " + klomeLow + " KLOMEHigh: " + klomeHigh);
 
-                    if (queue.size() < N){
+                    clusters_with_klome.add(triple);
+
+                    /*if (queue.size() < N){
                         queue.add(triple);
                     }
                     else if (klomeHigh < queue.peekLast().getMiddle()){
@@ -106,6 +110,27 @@ public class PruningProcessorSupplier implements ProcessorSupplier<Integer, Clus
                     }
                     else if (klomeLow <= queue.peekLast().getRight()){
                         queue.add(triple);
+                    }*/
+                }
+
+                int[] before_counts = new int[clusters_with_klome.size()];
+
+                for (int i = 0; i < clusters_with_klome.size(); i++){
+                    Triple<Integer, Double, Double> t1 = clusters_with_klome.get(i);
+                    for (int j = 0; j < clusters_with_klome.size(); j++){
+                        Triple<Integer, Double, Double> t2 = clusters_with_klome.get(j);
+                        if (t1.getRight() < t2.getMiddle()){
+                            before_counts[j] += 1;
+                        }
+                    }
+                }
+
+                for (int i = 0; i < before_counts.length; i++) {
+                    if (before_counts[i] < N){
+                        int cluster = clusters_with_klome.get(i).getLeft();
+
+                        System.out.println("TOPNCluster: " + cluster);
+                        this.context.forward(cluster, this.clusterWithDensities.get(cluster));
                     }
                 }
 
@@ -115,11 +140,11 @@ public class PruningProcessorSupplier implements ProcessorSupplier<Integer, Clus
                     this.topNClusters.delete(cluster.key);
                 }*/
 
-                for (Triple<Integer, Double, Double> t : queue) {
+                /*for (Triple<Integer, Double, Double> t : queue) {
                     System.out.println("TOPNCluster: " + t.getLeft());
                     this.context.forward(t.getLeft(), this.clusterWithDensities.get(t.getLeft()));
                     // this.topNClusters.put(t.getLeft(), this.clusterWithDensities.get(t.getLeft()));
-                }
+                }*/
 
                 for(KeyValueIterator<Integer, Cluster> i = this.clusterWithDensities.all(); i.hasNext();) {
                     KeyValue<Integer, Cluster> cluster = i.next();
