@@ -22,61 +22,13 @@ public class ClusteringProcessorSupplier implements ProcessorSupplier<Integer, A
     public Processor<Integer, ArrayList<Double>> get() {
         return new Processor<Integer, ArrayList<Double>>() {
             private ProcessorContext context;
+            private KeyValueStore<Integer, ArrayList<Double>> pointBuffer;
             private KeyValueStore<Integer, Cluster> tempClusters;
             private KeyValueStore<Integer, Triple<Integer, ArrayList<Double>, Long>> clusterAssignments;
             private long benchmarkTime = 0;
             private int benchmarks = 0;
 
-            @Override
-            public void init(ProcessorContext context) {
-                this.context = context;
-                this.tempClusters = (KeyValueStore<Integer, Cluster>) context.getStateStore("TempClusters");
-                this.clusterAssignments = (KeyValueStore<Integer, Triple<Integer, ArrayList<Double>, Long>>) context.getStateStore("ClusterAssignments");
-
-                KeyValueStore<Integer, Cluster> clusters = (KeyValueStore<Integer, Cluster>) context.getStateStore("Clusters");
-
-                // Emit cluster meta data after sub-window has been processed
-                this.context.schedule(WINDOW_TIME, PunctuationType.STREAM_TIME, timestamp -> {
-                    long start = System.currentTimeMillis();
-                     // System.out.println("Clustering window" + timestamp);
-                    for(KeyValueIterator<Integer, Cluster> i = this.tempClusters.all(); i.hasNext();) {
-                        KeyValue<Integer, Cluster> cluster = i.next();
-                        cluster.value.updateMetrics();
-                        context.forward(cluster.key, cluster.value, To.child("AggregationProcessor"));
-
-                        this.tempClusters.delete(cluster.key);
-                    }
-
-                    context.commit();
-
-                    // Initialize cluster with old metrics for stability
-                    for(KeyValueIterator<Integer, Cluster> i = clusters.all(); i.hasNext();) {
-                        KeyValue<Integer, Cluster> cluster = i.next();
-                        Cluster emptyCluster = new Cluster(cluster.value, K);
-                        emptyCluster.centroid = cluster.value.centroid;
-
-                        this.tempClusters.put(cluster.key, emptyCluster);
-                    }
-
-                    if(benchmarkTime == 0) {
-                        benchmarkTime = System.currentTimeMillis() - start;
-                    } else {
-                        benchmarkTime = (benchmarks * benchmarkTime + (System.currentTimeMillis() - start)) / (benchmarks + 1);
-                    }
-
-                    benchmarks++;
-
-                    System.out.println("Clustering: " + benchmarkTime);
-                });
-            }
-
-            /*
-                Clusters data points by computing distances to cluster centroids
-                and adding the points to the nearest cluster or by creating
-                new clusters for distances above the threshold.
-            */
-            @Override
-            public void process(Integer key, ArrayList<Double> value) {
+            private void processPoint(Integer key, ArrayList<Double> value){
 
                 double minDist = Double.MAX_VALUE;
                 Cluster cluster = null;
@@ -114,6 +66,74 @@ public class ClusteringProcessorSupplier implements ProcessorSupplier<Integer, A
                     this.context.forward(key, triple, To.child("ClusterAssignmentSink"));
                     // this.context.forward(key, pair, To.child("FilterProcessor"));
                 }
+            }
+
+            @Override
+            public void init(ProcessorContext context) {
+                this.context = context;
+                this.pointBuffer = (KeyValueStore<Integer, ArrayList<Double>>) context.getStateStore("ClusteringBuffer");
+                this.tempClusters = (KeyValueStore<Integer, Cluster>) context.getStateStore("TempClusters");
+                this.clusterAssignments = (KeyValueStore<Integer, Triple<Integer, ArrayList<Double>, Long>>) context.getStateStore("ClusterAssignments");
+
+                KeyValueStore<Integer, Cluster> clusters = (KeyValueStore<Integer, Cluster>) context.getStateStore("Clusters");
+
+                // Emit cluster meta data after sub-window has been processed
+                this.context.schedule(WINDOW_TIME, PunctuationType.STREAM_TIME, timestamp -> {
+                    long start = System.currentTimeMillis();
+                     // System.out.println("Clustering window" + timestamp);
+
+                    // Perform clustering
+                    for(KeyValueIterator<Integer, ArrayList<Double>> i = this.pointBuffer.all(); i.hasNext();) {
+                        KeyValue<Integer, ArrayList<Double>> point = i.next();
+
+                        this.processPoint(point.key, point.value);
+
+                        this.pointBuffer.delete(point.key);
+                    }
+
+
+                    for(KeyValueIterator<Integer, Cluster> i = this.tempClusters.all(); i.hasNext();) {
+                        KeyValue<Integer, Cluster> cluster = i.next();
+                        cluster.value.updateMetrics();
+                        context.forward(cluster.key, cluster.value, To.child("AggregationProcessor"));
+
+                        this.tempClusters.delete(cluster.key);
+                    }
+
+                    context.commit();
+
+                    // Initialize cluster with old metrics for stability
+                    for(KeyValueIterator<Integer, Cluster> i = clusters.all(); i.hasNext();) {
+                        KeyValue<Integer, Cluster> cluster = i.next();
+                        Cluster emptyCluster = new Cluster(cluster.value, K);
+                        emptyCluster.centroid = cluster.value.centroid;
+
+                        this.tempClusters.put(cluster.key, emptyCluster);
+                    }
+
+
+
+                    if(benchmarkTime == 0) {
+                        benchmarkTime = System.currentTimeMillis() - start;
+                    } else {
+                        benchmarkTime = (benchmarks * benchmarkTime + (System.currentTimeMillis() - start)) / (benchmarks + 1);
+                    }
+
+                    benchmarks++;
+
+                    System.out.println("Clustering: " + benchmarkTime);
+                });
+            }
+
+            /*
+                Clusters data points by computing distances to cluster centroids
+                and adding the points to the nearest cluster or by creating
+                new clusters for distances above the threshold.
+            */
+            @Override
+            public void process(Integer key, ArrayList<Double> value) {
+
+               this.pointBuffer.put(key, value);
             }
 
             @Override

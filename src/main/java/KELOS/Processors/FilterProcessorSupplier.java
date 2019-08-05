@@ -61,7 +61,7 @@ public class FilterProcessorSupplier implements ProcessorSupplier<Integer, Clust
                     for(KeyValueIterator<Integer,Triple<Integer, ArrayList<Double>, Long>> i = this.windowPoints.all(); i.hasNext();) {
                         KeyValue<Integer, Triple<Integer, ArrayList<Double>, Long>> point = i.next();
 
-                        if (point.value.getRight() < timestamp - WINDOW_TIME.toMillis()){
+                        if (point.value.getRight() <= timestamp - WINDOW_TIME.toMillis()){
                             Cluster cluster = this.topNClusters.get(point.value.getLeft());
 
                             // Workaround to reuse densityEstimator
