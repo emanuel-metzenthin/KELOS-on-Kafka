@@ -15,11 +15,15 @@ Due to an increase in the data sizes and sources we have to deal with nowadays, 
 
 # 5 Architecture
 
-## 5.1 Data Abstractor
+## 5.1 Introduction to the KELOS algorithm
 
-## 5.2 Density Estimator
+## 5.2 Architecture Overview
 
-## 5.3 Outlier Detector
+## 5.2 Data Abstractor
+
+## 5.3 Density Estimator
+
+## 5.4 Outlier Detector
 
 # 6 Evaluation
 
@@ -33,8 +37,11 @@ Due to an increase in the data sizes and sources we have to deal with nowadays, 
 
 [1] Markus M. Breunig, Hans-Peter Kriegel, Raymond T. Ng, and Jörg Sander.
 2000. LOF: Identifying Density-based Local Outliers. In SIGMOD. 93–104.
+
 [2] Dragoljub Pokrajac, Aleksandar Lazarevic, and Longin Jan Latecki. 2007. In-
 cremental local outlier detection for data streams. In CIDM. IEEE, 504–515.
+
 [3] MahsaSalehi,ChristopherLeckie,JamesC.Bezdek,TharshanVaithianathan, and Xuyun Zhang. 2016. Fast Memory Efficient Local Outlier Detection in
 Data Streams. TKDE 28, 12 (2016), 3246–3260.
+
 [4] Xiao Qin , Lei Cao , Elke A. Rundensteiner and Samuel Madden. 2019. Scalable Kernel Density Estimation-based Local Outlier Detection over Large Data Streams. 22nd International Conference on Extending Database Technology (EDBT)
