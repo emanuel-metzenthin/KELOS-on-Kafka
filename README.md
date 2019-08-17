@@ -17,7 +17,17 @@ Due to an increase in the data sizes and sources we have to deal with nowadays, 
 
 ## 5.1 Introduction to the KELOS algorithm
 
+The KELOS algorithm [4] computes the Top-N outliers per sliding stream window. It works using Kernel Density Estimators, leveraging the statistical properties of the dataset to compute the density at a specific point.
+The key difference to other local outlier detection algorithms is the introduction of abstract kernel centers. Before doing the density calculation, the data points get clustered. Then the density measure is first only computed for theses clusters - weighted by the number of points in it instead of the points themselves.
+
+A kernel function, typically a gaussian probability density function, is used in order to get the density. For efficiency the density is computed heuristaclly per dimension and then multiplied rather then using euclidean distances.
+
+Then an outlier score (KLOME score) gets computed and lower and upper bounds of that score determined for each cluster. Based on these bounds the clusters that will definitely not contain outliers get pruned. Finally for all remaining clusters and the contained points the KLOME scores get calculated again the outliers identified.
+
 ## 5.2 Architecture Overview
+
+We stuctured our implementation following the same schema as [] in their publication. 
+
 
 ## 5.2 Data Abstractor
 
