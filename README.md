@@ -9,7 +9,7 @@ KELOS (Scalable Kernel Density Estimation-based Local Outlier Detection over Lar
 
 Techniques for outlier detection are applicable to and needed for a variety of domains, ranging from financial fraud detection to network security [4]. The goal is to identify data points which are very different from the rest of the dataset. In the case of credit card fraud this could be card transactions accuring in a particularly high frequency or unusual location. The concept of *local* outliers works with the assumption that most datasets in the real-world are skewed and that their data points thus have varying distribution properties [1]. Therefore a point is considered an outlier only if the density at that spot is considerably lower than at the surrounding points, rather than taking the global dataset density into account. 
 
-Due to an increase in the data sizes and sources we have to deal with nowadays, algorithms that work on data streams instead of whole datasets are in high demand. There exist a few approaches to do outlier detection using data streaming [2][3][4]. The KELOS algorithm [4] is an efficient and scalable solution to the problem. However no implementation of such an algorithm in a broadly adopted streaming framework is available. That is why we chose to implement KELOS using Kafka Streams. 
+Due to an increase in the data sizes and sources we have to deal with nowadays, algorithms that work on data streams instead of whole datasets are in high demand. There exist a few approaches to do outlier detection using data streaming [2][3][4]. The KELOS algorithm [4] is an efficient and scalable solution to the problem. However, there is no publicly available implementation of this algorithm in a broadly adopted streaming framework, making it hard to deploy the algorithm in a real-world scenario. To remove this obstacle we chose to implement KELOS using Kafka Streams, a stream-processing library that is closely integrated with the popular Kafka message broker.
 
 # 4 Related work
 
@@ -18,18 +18,18 @@ Due to an increase in the data sizes and sources we have to deal with nowadays, 
 ## 5.1 Introduction to the KELOS algorithm
 
 The KELOS algorithm [4] computes the Top-N outliers per sliding stream window. It works using Kernel Density Estimators, leveraging the statistical properties of the dataset to compute the density at a specific point.
-The key difference to other local outlier detection algorithms is the introduction of abstract kernel centers. Before doing the density calculation, the data points get clustered. Then the density measure is first only computed for theses clusters - weighted by the number of points in it instead of the points themselves.
+The key difference to other local outlier detection algorithms is the introduction of abstract kernel centers. This innovation is based on the observation that all points in a cluster have a similar density and affect the density of points in other clusters in a similar way. Before doing the density calculation, the data points are clustered. Then the density measure is only computed for these clusters at first.
 
-A kernel function, typically a gaussian probability density function, is used in order to get the density. For efficiency the density is computed heuristaclly per dimension and then multiplied rather then using euclidean distances.
+A kernel function, typically a gaussian probability density function, is used in order to get the density. Each cluster is weighted proportionally to the number of points it contains. For efficiency the density is computed heuristically per dimension and then multiplied rather then using euclidean distances.
 
-Then an outlier score (KLOME score) gets computed and lower and upper bounds of that score determined for each cluster. Based on these bounds the clusters that will definitely not contain outliers get pruned. Finally for all remaining clusters and the contained points the KLOME scores get calculated again the outliers identified.
+Then an outlier score (KLOME score) gets computed and lower and upper bounds of that score determined for each cluster. Based on these bounds the clusters that will definitely not contain outliers get pruned. Finally the KLOME scores for all points in the remaining clusters are calculated to identifiy the outliers.
 
 ## 5.2 Architecture Overview
 
 We stuctured our implementation following the same schema as [4] in their publication. 
 
 
-## 5.2 Data Abstractor
+## 5.3 Data Abstractor
 
 KELOS uses a micro-clustering approach, where newly arriving data points are simply added to the nearest existing cluster if the distance is smaller than a certain threshold. Otherwise a new cluster with that point will be created. 
 
@@ -41,9 +41,9 @@ The whole window gets split into several panes the size of the window step size.
 
 To adapt this windowing technique we set the window step size of our whole Kafka application to the pane size. The clustering is then performed in two Processors. The first (ClusteringProcessor) clusters the points in one cluster pane and forwards the metrics for that pane. The second (AggregationProcessor) merges the last panes with the current one and forwards cluster metrics for the complete window ending at the current timestamp.
 
-## 5.3 Density Estimator
+## 5.4 Density Estimator
 
-## 5.4 Outlier Detector
+## 5.5 Outlier Detector
 
 # 6 Evaluation
 
