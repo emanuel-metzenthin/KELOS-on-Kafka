@@ -39,7 +39,7 @@ The whole window gets split into several panes the size of the window step size.
 
 ![Figure 1: Sliding window semantics](figures/sliding-window-semantic.jpg)
 
-
+To adapt this windowing technique we set the window step size of our whole Kafka application to the pane size. The clustering is then performed in two Processors. The first (ClusteringProcessor) clusters the points in one cluster pane and forwards the metrics for that pane. The second (AggregationProcessor) merges the last panes with the current one and forwards cluster metrics for the complete window ending at the current timestamp.
 
 ## 5.3 Density Estimator
 
