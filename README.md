@@ -41,7 +41,7 @@ For the density kernel a few statistical properties of the clusters have to be s
 
 The whole window gets split into several panes the size of the window step size. The cluster metrics then only have to be computed for pane of the new step size duration. The pane can merely expire and the metrics of the panes in between are kept and merged with the new pane. Figure 1 shows this process.
 
-![Figure 1: Sliding window semantics](./sliding-window-semantic.jpg)
+![Figure 1: Sliding window semantics](https://github.com/emanuel-metzenthin/KELOS-on-Kafka/blob/report/figures/sliding-window-semantic.png)
 
 To adapt this windowing technique we set the window step size of our whole Kafka application to the pane size. The clustering is then performed in two Processors. The first (ClusteringProcessor) clusters the points in one cluster pane and forwards the metrics for that pane. The second (AggregationProcessor) merges the last panes with the current one and forwards cluster metrics for the complete window ending at the current timestamp.
 
