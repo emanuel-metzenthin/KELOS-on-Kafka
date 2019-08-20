@@ -13,6 +13,10 @@ Due to an increase in the data sizes and sources we have to deal with nowadays, 
 
 # 4 Related work
 
+The concept of local outliers was first brought up by Breunig et al. in [1]. They were detected by computing the so called *local outlier factor* (LOF), a metric that measures the k-nearest neighbor distance of a point relative to the k-nearest neighbor distance of the points k-nearest neighbors. Though originally a batch computation, it has since been adapted to the streaming case by computing the LOF in an incremental way [2]. This was further improved upon with MiLOF [3], an algorithm that reduces the memory usage and time complexity of the outlier detection.
+
+
+
 # 5 Architecture
 
 ## 5.1 Introduction to the KELOS algorithm
@@ -61,7 +65,7 @@ To adapt this windowing technique we set the window step size of our whole Kafka
 [2] Dragoljub Pokrajac, Aleksandar Lazarevic, and Longin Jan Latecki. 2007. In-
 cremental local outlier detection for data streams. In CIDM. IEEE, 504–515.
 
-[3] MahsaSalehi,ChristopherLeckie,JamesC.Bezdek,TharshanVaithianathan, and Xuyun Zhang. 2016. Fast Memory Efficient Local Outlier Detection in
+[3] Mahsa Salehi, Christopher Leckie, James C. Bezdek, Tharshan Vaithianathan, and Xuyun Zhang. 2016. Fast Memory Efficient Local Outlier Detection in
 Data Streams. TKDE 28, 12 (2016), 3246–3260.
 
 [4] Xiao Qin , Lei Cao , Elke A. Rundensteiner and Samuel Madden. 2019. Scalable Kernel Density Estimation-based Local Outlier Detection over Large Data Streams. 22nd International Conference on Extending Database Technology (EDBT)
