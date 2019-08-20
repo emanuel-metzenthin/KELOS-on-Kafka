@@ -15,7 +15,7 @@ Due to an increase in the data sizes and sources we have to deal with nowadays, 
 
 The concept of local outliers was first brought up by Breunig et al. in [1]. They were detected by computing the so called *local outlier factor* (LOF), a metric that measures the k-nearest neighbor distance of a point relative to the k-nearest neighbor distance of the points k-nearest neighbors. Though originally a batch computation, it has since been adapted to the streaming case by computing the LOF in an incremental way [2]. This was further improved upon with MiLOF [3], an algorithm that reduces the memory usage and time complexity of the outlier detection.
 
-
+All these algorithms use the local outlier factor for ranking the outliers, but there are other approaches as well. One of them is Kernel density estimation (KDE), a statistical technique for estimating probability density functions. It was first used for outlier detection in [5] then improved upon in [6]. The KELOS algorithm [4] implemented in this repository is the first to adapt KDE-based outlier detection to the streaming scenario.
 
 # 5 Architecture
 
@@ -41,7 +41,7 @@ For the density kernel a few statistical properties of the clusters have to be s
 
 The whole window gets split into several panes the size of the window step size. The cluster metrics then only have to be computed for pane of the new step size duration. The pane can merely expire and the metrics of the panes in between are kept and merged with the new pane. Figure 1 shows this process.
 
-![Figure 1: Sliding window semantics](https://github.com/emanuel-metzenthin/KELOS-on-Kafka/blob/report/figures/sliding-window-semantic.png)
+![Figure 1: Sliding window semantics](./sliding-window-semantic.jpg)
 
 To adapt this windowing technique we set the window step size of our whole Kafka application to the pane size. The clustering is then performed in two Processors. The first (ClusteringProcessor) clusters the points in one cluster pane and forwards the metrics for that pane. The second (AggregationProcessor) merges the last panes with the current one and forwards cluster metrics for the complete window ending at the current timestamp.
 
@@ -59,13 +59,15 @@ To adapt this windowing technique we set the window step size of our whole Kafka
 
 # References
 
-[1] Markus M. Breunig, Hans-Peter Kriegel, Raymond T. Ng, and Jörg Sander.
-2000. LOF: Identifying Density-based Local Outliers. In SIGMOD. 93–104.
+[1] Markus M. Breunig, Hans-Peter Kriegel, Raymond T. Ng, and Jörg Sander. 2000. LOF: Identifying Density-based Local Outliers. In SIGMOD. 93–104.
 
-[2] Dragoljub Pokrajac, Aleksandar Lazarevic, and Longin Jan Latecki. 2007. In-
-cremental local outlier detection for data streams. In CIDM. IEEE, 504–515.
+[2] Dragoljub Pokrajac, Aleksandar Lazarevic, and Longin Jan Latecki. 2007. Incremental local outlier detection for data streams. In CIDM. IEEE, 504–515.
 
 [3] Mahsa Salehi, Christopher Leckie, James C. Bezdek, Tharshan Vaithianathan, and Xuyun Zhang. 2016. Fast Memory Efficient Local Outlier Detection in
 Data Streams. TKDE 28, 12 (2016), 3246–3260.
 
 [4] Xiao Qin , Lei Cao , Elke A. Rundensteiner and Samuel Madden. 2019. Scalable Kernel Density Estimation-based Local Outlier Detection over Large Data Streams. 22nd International Conference on Extending Database Technology (EDBT)
+
+[5] Longin Jan Latecki, Aleksandar Lazarevic, and Dragoljub Pokrajac. 2007. Outlier detection with kernel density functions. In MLDM. Springer, 61–75.
+
+[6] Mahsa Salehi, Christopher Leckie, James C. Bezdek, Tharshan Vaithianathan, and Xuyun Zhang. 2016. Fast Memory Efficient Local Outlier Detection in Data Streams. TKDE 28, 12 (2016), 3246–3260.
