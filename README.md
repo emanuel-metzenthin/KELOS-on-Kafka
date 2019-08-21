@@ -56,6 +56,11 @@ The clusters get serialized into the Kafka topics as objects of the Java class "
 
 ## 5.4 Density Estimator
 
+In the next step the densities at the cluster centroids get calculated. The density estimator first computes the k nearest neighbor clusters for each cluster in the current window. The next processor then calculates the density measure using a gaussian kernel for each dimension (see Formula 1). The parameter *u* of the function is the distance per dimensino between the cluster's centroid and the centroid of a neighbor cluster. The kernel for each neighbor then gets weighted by the neighbor cluster's cardinality.
+
+![Formula 1: Gaussian kernel](./figures/gaussian-kernel.png)
+*Formula 1: Gaussian kernel*
+
 ![Figure 4: Density Estimator](./figures/density-estimator.png)
 *Figure 4: Density Estimator*
 
