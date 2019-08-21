@@ -30,7 +30,9 @@ Then an outlier score (KLOME score) gets computed and lower and upper bounds of 
 
 ## 5.2 Architecture Overview
 
-We stuctured our implementation following the same schema as [4] in their publication. 
+We stuctured our implementation following the same schema as [4] in their publication (see Figure 1). Our streaming pipeline start withs a producer reading in a dataset from some CSV file. The data abstractor module then clusters these input datapoints, producing two topics: The resulting clusters and the assignments of data points to these clusters. The density estimator computes the densities for the clusters and forwards them to the outlier detector which puts out the outlier points at the end.
+
+![Figure 1: Architecture Overview](./figures/architecture-overview.png)
 
 
 ## 5.3 Data Abstractor
@@ -39,15 +41,21 @@ KELOS uses a micro-clustering approach, where newly arriving data points are sim
 
 For the density kernel a few statistical properties of the clusters have to be stored. These are the *cardinality*, *linear sum* of points per dimension and the *minimum* and *maximum* values per dimension. As these values have additive properties and the kernel is computed per dimension a sliding window semantic can be achieved in the following way:
 
-The whole window gets split into several panes the size of the window step size. The cluster metrics then only have to be computed for pane of the new step size duration. The pane can merely expire and the metrics of the panes in between are kept and merged with the new pane. Figure 1 shows this process.
+The whole window gets split into several panes the size of the window step size. The cluster metrics then only have to be computed for pane of the new step size duration. The pane can merely expire and the metrics of the panes in between are kept and merged with the new pane. Figure 2 shows this process.
 
-![Figure 1: Sliding window semantics](./figures/sliding-window-semantic.png)
+![Figure 2: Sliding window semantics](./figures/sliding-window-semantic.png)
 
-To adapt this windowing technique we set the window step size of our whole Kafka application to the pane size. The clustering is then performed in two Processors. The first (ClusteringProcessor) clusters the points in one cluster pane and forwards the metrics for that pane. The second (AggregationProcessor) merges the last panes with the current one and forwards cluster metrics for the complete window ending at the current timestamp.
+To adapt this windowing technique we set the window step size of our whole Kafka application to the pane size. The clustering is then performed in two Processors (see Figure 3). The first (ClusteringProcessor) clusters the points in one cluster pane and forwards the metrics for that pane. The second (AggregationProcessor) merges the last panes with the current one and forwards cluster metrics for the complete window ending at the current timestamp.
+
+![Figure 3: Data Abstractor](./figures/data-abstractor.png)
 
 ## 5.4 Density Estimator
 
+![Figure 4: Density Estimator](./figures/density-estimator.png)
+
 ## 5.5 Outlier Detector
+
+![Figure 5: Outlier detector](./figures/outlier-detector.png)
 
 # 6 Evaluation
 
