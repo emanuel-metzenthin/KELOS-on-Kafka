@@ -47,7 +47,7 @@ The whole window gets split into several sub-windows, so called panes, the size 
 ![Figure 2: Sliding window semantics](./figures/sliding-window-semantic.png)
 *Figure 2: Sliding window semantics [4]*
 
-To adapt this windowing technique we set the window time our Kafka application to the pane size. The clustering is then performed in two Processors (see Figure 3). The first (ClusteringProcessor) clusters the points in each new window pane and forwards the clusters and their metrics for that pane. The second (AggregationProcessor) then receives one message per window pane containing the current cluster metrics. For every new pane arriving it deletes the oldest and merges the last panes with the new one. The forwarded clusters are then the ones for the complete sliding window ending at the current timestamp.
+Kafka streams does not provide nested window functionality. To adapt this windowing technique we therefore set the window time our Kafka application to the pane size. The clustering is then performed in two Processors (see Figure 3). The first (ClusteringProcessor) clusters the points in each new window pane and forwards the clusters and their metrics for that pane. The second (AggregationProcessor) then receives one message per window pane containing the current cluster metrics. For every new pane arriving it deletes the oldest and merges the last panes with the new one. The forwarded clusters are then the ones for the complete sliding window ending at the current timestamp.
 
 ![Figure 3: Data Abstractor](./figures/data-abstractor.png)
 *Figure 3: Data Abstractor*
