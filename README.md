@@ -49,6 +49,8 @@ To adapt this windowing technique we set the window step size of our whole Kafka
 
 ![Figure 3: Data Abstractor](./figures/data-abstractor.png)
 
+The clusters get serialized into the Kafka topics as objects of the Java class "Cluster". The class acts as a data container for all cluster metrics (cardinality, minima etc.) and their density scores later on.
+
 ## 5.4 Density Estimator
 
 ![Figure 4: Density Estimator](./figures/density-estimator.png)
