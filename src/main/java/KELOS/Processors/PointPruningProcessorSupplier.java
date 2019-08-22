@@ -10,9 +10,11 @@ import org.apache.kafka.streams.state.KeyValueIterator;
 import org.apache.kafka.streams.state.KeyValueStore;
 
 import java.lang.reflect.Array;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Comparator;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.*;
 
 import static KELOS.Main.*;
 
@@ -45,18 +47,37 @@ public class PointPruningProcessorSupplier implements ProcessorSupplier<Integer,
                 this.pointWithDensities = (KeyValueStore<Integer, Pair<Cluster, Integer>>) context.getStateStore("PointsWithDensities");
 
                 this.context.schedule(WINDOW_TIME, PunctuationType.STREAM_TIME, timestamp -> {
+
+                    Date date = new Date(timestamp);
+                    DateFormat formatter = new SimpleDateFormat("HH:mm:ss.SSS");
+                    formatter.setTimeZone(TimeZone.getTimeZone("Europe/Berlin"));
+                    String dateFormatted = formatter.format(date);
+                    String systime = LocalDateTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss.SSS"));
+
+                    System.out.println("New Outlier window: " + dateFormatted + " System time : " + systime);
+
                     long start = System.currentTimeMillis();
                     MinMaxPriorityQueue<Pair<Integer, Double>> queue = MinMaxPriorityQueue
                             .orderedBy(new KlomeComparator())
                             .maximumSize(N)
                             .create();
 
+                    boolean first = true;
+
                     for(KeyValueIterator<Integer, Pair<Cluster, Integer>> i = this.pointWithDensities.all(); i.hasNext();) {
                         KeyValue<Integer, Pair<Cluster, Integer>> point = i.next();
+
 
                         //No KLOME score calculation for non-candidates
                         if (point.value.getRight() == 1){
                             continue;
+                        }
+                        if(first) {
+                            System.out.println("Outlier points from " + point.key);
+                            first = false;
+                        }
+                        if(!i.hasNext()) {
+                            System.out.println("Outlier points last " + point.key);
                         }
 
                         double knnMean = 0;

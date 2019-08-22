@@ -48,20 +48,26 @@ public class FilterProcessorSupplier implements ProcessorSupplier<Integer, Clust
                     String dateFormatted = formatter.format(date);
                     String systime = LocalDateTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss.SSS"));
 
-                    // System.out.println("New FILTER window: " + dateFormatted + " System time : " + systime);
+                    System.out.println("New FILTER window: " + dateFormatted + " System time : " + systime);
 
                     for(KeyValueIterator<Integer, Cluster> i = this.topNClusters.all(); i.hasNext();) {
                         KeyValue<Integer, Cluster> cluster = i.next();
 
                         // System.out.println("TOP-N-Cluster: " + cluster.key);
                     }
-
-                    // System.out.println("New Window");
-
+                    boolean first = true;
                     for(KeyValueIterator<Integer,Triple<Integer, ArrayList<Double>, Long>> i = this.windowPoints.all(); i.hasNext();) {
                         KeyValue<Integer, Triple<Integer, ArrayList<Double>, Long>> point = i.next();
 
-                        if (point.value.getRight() <= timestamp - WINDOW_TIME.toMillis()){
+                        if (point.value.getRight() <= timestamp - 2 * WINDOW_TIME.toMillis()){
+                            if(first) {
+                                System.out.println("Filter points from " + point.key);
+                                first = false;
+                            }
+                            if(!i.hasNext()) {
+                                System.out.println("Filter points last " + point.key);
+                            }
+
                             Cluster cluster = this.topNClusters.get(point.value.getLeft());
 
                             // Workaround to reuse densityEstimator
@@ -70,7 +76,6 @@ public class FilterProcessorSupplier implements ProcessorSupplier<Integer, Clust
                             if (cluster != null){
                                 Pair<Cluster, Boolean> pair = Pair.of(singlePointCluster, true);
                                 this.context.forward(point.key, pair);
-                                // System.out.println("Filter: " + point.key);
                             }
                             else {
                                 Pair<Cluster, Boolean> pair = Pair.of(singlePointCluster, false);

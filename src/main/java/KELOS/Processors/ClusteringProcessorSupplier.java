@@ -8,7 +8,13 @@ import org.apache.kafka.streams.processor.*;
 import org.apache.kafka.streams.state.KeyValueIterator;
 import org.apache.kafka.streams.state.KeyValueStore;
 
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Date;
+import java.util.TimeZone;
 
 import static KELOS.Main.*;
 
@@ -79,12 +85,29 @@ public class ClusteringProcessorSupplier implements ProcessorSupplier<Integer, A
 
                 // Emit cluster meta data after sub-window has been processed
                 this.context.schedule(WINDOW_TIME, PunctuationType.STREAM_TIME, timestamp -> {
+                    Date date = new Date(timestamp);
+                    DateFormat formatter = new SimpleDateFormat("HH:mm:ss.SSS");
+                    formatter.setTimeZone(TimeZone.getTimeZone("Europe/Berlin"));
+                    String dateFormatted = formatter.format(date);
+                    String systime = LocalDateTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss.SSS"));
+
+                    System.out.println("New Clustering window: " + dateFormatted + " System time : " + systime);
+
                     long start = System.currentTimeMillis();
-                     // System.out.println("Clustering window" + timestamp);
+
+                    boolean first = true;
 
                     // Perform clustering
                     for(KeyValueIterator<Integer, ArrayList<Double>> i = this.pointBuffer.all(); i.hasNext();) {
                         KeyValue<Integer, ArrayList<Double>> point = i.next();
+
+                        if(first) {
+                            System.out.println("Clustering points from " + point.key);
+                            first = false;
+                        }
+                        if(!i.hasNext()) {
+                            System.out.println("Clustering points last " + point.key);
+                        }
 
                         this.processPoint(point.key, point.value);
 

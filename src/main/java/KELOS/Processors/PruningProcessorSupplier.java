@@ -97,7 +97,7 @@ public class PruningProcessorSupplier implements ProcessorSupplier<Integer, Clus
                     double klomeHigh = (cluster.value.maxDensityBound - knnMean) / knnStddev;
                     Triple<Integer, Double, Double> triple = Triple.of(cluster.key, klomeLow, klomeHigh);
 
-                    System.out.println("Cluster: " + cluster.key + " KLOMELow: " + klomeLow + " KLOMEHigh: " + klomeHigh);
+                    // System.out.println("Cluster: " + cluster.key + " KLOMELow: " + klomeLow + " KLOMEHigh: " + klomeHigh);
 
                     clusters_with_klome.add(triple);
 
@@ -129,7 +129,7 @@ public class PruningProcessorSupplier implements ProcessorSupplier<Integer, Clus
                     if (before_counts[i] < N){
                         int cluster = clusters_with_klome.get(i).getLeft();
 
-                        System.out.println("TOPNCluster: " + cluster);
+                        // System.out.println("TOPNCluster: " + cluster);
                         this.context.forward(cluster, this.clusterWithDensities.get(cluster));
                     }
                 }

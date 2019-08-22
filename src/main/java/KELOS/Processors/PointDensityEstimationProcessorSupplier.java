@@ -11,7 +11,13 @@ import org.apache.kafka.streams.processor.PunctuationType;
 import org.apache.kafka.streams.state.KeyValueIterator;
 import org.apache.kafka.streams.state.KeyValueStore;
 
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Date;
+import java.util.TimeZone;
 
 import static KELOS.Main.WINDOW_TIME;
 
@@ -40,9 +46,25 @@ public class PointDensityEstimationProcessorSupplier implements ProcessorSupplie
             this.windowPoints = (KeyValueStore<Integer, Pair<Cluster, Integer>>) context.getStateStore("PointDensityBuffer");
 
             this.context.schedule(WINDOW_TIME, PunctuationType.STREAM_TIME, timestamp -> {
-                //System.out.println("Point density estimation at: " + timestamp);
+                Date date = new Date(timestamp);
+                DateFormat formatter = new SimpleDateFormat("HH:mm:ss.SSS");
+                formatter.setTimeZone(TimeZone.getTimeZone("Europe/Berlin"));
+                String dateFormatted = formatter.format(date);
+                String systime = LocalDateTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss.SSS"));
+
+                System.out.println("New Point Density window: " + dateFormatted + " System time : " + systime);
+
+                boolean first = true;
+
                 for(KeyValueIterator<Integer, Pair<Cluster, Integer>> it = this.windowPoints.all(); it.hasNext();) {
                     KeyValue<Integer, Pair<Cluster, Integer>> kv = it.next();
+                    if(first) {
+                        System.out.println("Density points from " + kv.key);
+                        first = false;
+                    }
+                    if(!it.hasNext()) {
+                        System.out.println("Density points last " + kv.key);
+                    }
                     Integer key = kv.key;
 
                     // Don't compute density for neighbors of neighbors
@@ -151,7 +173,6 @@ public class PointDensityEstimationProcessorSupplier implements ProcessorSupplie
 
         @Override
         public void process(Integer key, Pair<Cluster, Integer> cluster) {
-            System.out.println("Point density process " + key);
             this.windowPoints.put(key, cluster);
         }
 

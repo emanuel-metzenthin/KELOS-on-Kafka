@@ -56,12 +56,22 @@ public class KNearestPointsProcessorSupplier implements ProcessorSupplier<Intege
                     String systime = LocalDateTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss.SSS"));
 
                     System.out.println("New KNN Points window: " + dateFormatted + " System time : " + systime);
+
                     HashSet<Integer> candidates = new HashSet<>();
                     HashSet<Integer> candidateKNNs = new HashSet<>();
                     HashSet<Integer> knnKNNs = new HashSet<>();
+                    boolean first = true;
 
                     for (KeyValueIterator<Integer, Cluster> it = this.candidatePoints.all(); it.hasNext();) {
                         KeyValue<Integer, Cluster> kv = it.next();
+
+                        if(first) {
+                            System.out.println("KNN points from " + kv.key);
+                            first = false;
+                        }
+                        if(!it.hasNext()) {
+                            System.out.println("KNN points last " + kv.key);
+                        }
                         Cluster cluster = kv.value;
 
                         cluster.calculateKNearestNeighbors(this.pointClusters.all(), kv.key);
@@ -71,7 +81,7 @@ public class KNearestPointsProcessorSupplier implements ProcessorSupplier<Intege
 
                         Pair<Cluster, Integer> pair = Pair.of(cluster, 0);
                         context.forward(kv.key, pair);
-                        System.out.println("KNN Points candidate forward: " + kv.key);
+                        // System.out.println("KNN Points candidate forward: " + kv.key);
 
                         this.candidatePoints.delete(kv.key);
                     }
@@ -111,7 +121,7 @@ public class KNearestPointsProcessorSupplier implements ProcessorSupplier<Intege
 
                         Pair<Cluster, Integer> pair = Pair.of(cluster, 1);
                         context.forward(index, pair);
-                        System.out.println("KNN Points KNN forward: " + index);
+                        // System.out.println("KNN Points KNN forward: " + index);
                     }
 
                     for (int index : knnKNNs){
@@ -119,7 +129,7 @@ public class KNearestPointsProcessorSupplier implements ProcessorSupplier<Intege
 
                         Pair<Cluster, Integer> pair = Pair.of(cluster, 2);
                         context.forward(index, pair);
-                        System.out.println("KNN Points neighbor KNN forward: " + index);
+                        // System.out.println("KNN Points neighbor KNN forward: " + index);
                     }
 
                     for (KeyValueIterator<Integer, Cluster> it = this.pointClusters.all(); it.hasNext();){
