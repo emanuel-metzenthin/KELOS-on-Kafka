@@ -72,12 +72,12 @@ In summary, the density estimator takes the clusters as input and outputs the cl
 
 ## 5.5 Outlier Detector
 
-The outlier detector takes the results of the previous steps and uses them to compute the top N outliers within the current window. First the PruningProcessor discards all clusters that can't possibly contain an outlier. This is done by first computing an outlier score (called KLOME score) for each cluster based on the densities calculated in the density estimator. Then the upper and lower density bounds are used to also compute upper and lower KLOME bounds. Using these bounds, some clusters can be discarded, while other are forwarded to the FilterProcessor.
+The outlier detector takes the results of the previous steps and uses them to compute the top N outliers within the current window. First the PruningProcessor discards all clusters that can't possibly contain an outlier. This is done by first computing an outlier score (called KLOME score) for each cluster based on the densities calculated in the density estimator. Then the upper and lower density bounds are used to also compute upper and lower KLOME bounds. Using these bounds, some clusters can be discarded, while others are forwarded to the FilterProcessor.
 
 ![Figure 5: Outlier detector](./figures/outlier-detector.png)
 *Figure 5: Outlier detector*
 
-Here, all points that within clusters that are not pruned are tagged as the points are forwarded to the next processor. These points are the outlier candidates, the points that might be in the top N outliers. The remaining three processors then compute the KLOME scores of these candidates in a very similar manner as they were calculated for the clusters earlier (see figure 5). At the end of the pipeline, the PointPruningProcessor identifies the top N outliers amongst the candidates and thus the entire window.
+Here, all points that lie within clusters that are not pruned get tagged as all points are forwarded to the next processor. These points are the outlier candidates, the points that might be in the top N outliers. The remaining three processors then compute the KLOME scores of these candidates in a very similar manner as they were calculated for the clusters earlier (see figure 5). At the end of the pipeline, the PointPruningProcessor identifies the top N outliers amongst the candidates and thus the entire window.
 
 # 6 Evaluation
 
