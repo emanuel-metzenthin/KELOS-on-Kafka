@@ -2,20 +2,14 @@ package KELOS.Processors;
 
 import KELOS.Cluster;
 import KELOS.GaussianKernel;
-import org.apache.commons.math3.util.Pair;
 import org.apache.kafka.streams.KeyValue;
-import org.apache.kafka.streams.kstream.Windowed;
 import org.apache.kafka.streams.processor.Processor;
 import org.apache.kafka.streams.processor.ProcessorContext;
 import org.apache.kafka.streams.processor.ProcessorSupplier;
-import org.apache.kafka.streams.processor.PunctuationType;
 import org.apache.kafka.streams.state.KeyValueIterator;
 import org.apache.kafka.streams.state.KeyValueStore;
 
 import java.util.ArrayList;
-import java.util.Arrays;
-
-import static KELOS.Main.WINDOW_TIME;
 
 public class DensityEstimationProcessorSupplier implements ProcessorSupplier<Integer, Cluster> {
     /*
@@ -42,13 +36,18 @@ public class DensityEstimationProcessorSupplier implements ProcessorSupplier<Int
         public void init(ProcessorContext context) {
             this.context = context;
             this.clusters = (KeyValueStore<Integer, Cluster>) context.getStateStore(this.storeName);
+        }
 
-            this.context.schedule(WINDOW_TIME, PunctuationType.STREAM_TIME, timestamp -> {
+        @Override
+        public void process(Integer key, Cluster value) {
+//            System.out.println("Density process " + key);
+
+            if (Cluster.isEndOfWindowToken(value)){
                 long start = System.currentTimeMillis();
                 // System.out.println("Density estimation at: " + timestamp);
                 for(KeyValueIterator<Integer, Cluster> it = this.clusters.all(); it.hasNext();) {
                     KeyValue<Integer, Cluster> kv = it.next();
-                    Integer key = kv.key;
+                    Integer key2 = kv.key;
                     Cluster cluster = kv.value;
 
                     ArrayList<Cluster> kNNs = new ArrayList<>();
@@ -137,8 +136,10 @@ public class DensityEstimationProcessorSupplier implements ProcessorSupplier<Int
 //                        System.out.println("Dens forward " + kv.key);
 //                    }
                     // System.out.println("Density for " + key);
-                    this.context.forward(key, cluster);
+                    this.context.forward(key2, cluster);
                 }
+
+                this.context.forward(key, value);
 
                 for(KeyValueIterator<Integer, Cluster> i = this.clusters.all(); i.hasNext();) {
                     KeyValue<Integer, Cluster> cluster = i.next();
@@ -155,13 +156,11 @@ public class DensityEstimationProcessorSupplier implements ProcessorSupplier<Int
                 benchmarks++;
 
                 // System.out.println("Density: " + benchmarkTime);
-            });
-        }
+            }
+            else {
 
-        @Override
-        public void process(Integer key, Cluster cluster) {
-//            System.out.println("Density process " + key);
-            this.clusters.put(key, cluster);
+            }
+            this.clusters.put(key, value);
         }
 
         @Override

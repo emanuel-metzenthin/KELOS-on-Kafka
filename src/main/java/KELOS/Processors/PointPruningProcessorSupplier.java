@@ -3,13 +3,11 @@ package KELOS.Processors;
 import KELOS.Cluster;
 import com.google.common.collect.MinMaxPriorityQueue;
 import org.apache.commons.lang3.tuple.Pair;
-import org.apache.commons.lang3.tuple.Triple;
 import org.apache.kafka.streams.KeyValue;
 import org.apache.kafka.streams.processor.*;
 import org.apache.kafka.streams.state.KeyValueIterator;
 import org.apache.kafka.streams.state.KeyValueStore;
 
-import java.lang.reflect.Array;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.time.LocalDateTime;
@@ -45,10 +43,17 @@ public class PointPruningProcessorSupplier implements ProcessorSupplier<Integer,
             public void init(ProcessorContext context) {
                 this.context = context;
                 this.pointWithDensities = (KeyValueStore<Integer, Pair<Cluster, Integer>>) context.getStateStore("PointsWithDensities");
+            }
 
-                this.context.schedule(WINDOW_TIME, PunctuationType.STREAM_TIME, timestamp -> {
+            /*
 
-                    Date date = new Date(timestamp);
+             */
+            @Override
+            public void process(Integer key, Pair<Cluster, Integer> value) {
+                //System.out.println("Put " + key);
+
+                if (Cluster.isEndOfWindowToken(value.getLeft())){
+                    Date date = new Date(this.context.timestamp());
                     DateFormat formatter = new SimpleDateFormat("HH:mm:ss.SSS");
                     formatter.setTimeZone(TimeZone.getTimeZone("Europe/Berlin"));
                     String dateFormatted = formatter.format(date);
@@ -125,10 +130,10 @@ public class PointPruningProcessorSupplier implements ProcessorSupplier<Integer,
                     int count = 1;
                     // TODO: We eventually need to find a better solution, because the iterator doesn't preserve the order
                     for (Pair<Integer, Double> t : queue) {
-                        int key = t.getLeft();
-                        Cluster cluster = this.pointWithDensities.get(key).getLeft();
-                        this.context.forward(key, cluster);
-                        System.out.println("Outlier: " + count + " Punkt: " + key + " KLOME: " + t.getRight());
+                        int key2 = t.getLeft();
+                        Cluster cluster = this.pointWithDensities.get(key2).getLeft();
+                        this.context.forward(key2, cluster);
+                        System.out.println("Outlier: " + count + " Punkt: " + key2 + " KLOME: " + t.getRight());
                         count++;
                     }
 
@@ -149,16 +154,10 @@ public class PointPruningProcessorSupplier implements ProcessorSupplier<Integer,
                     benchmarks++;
 
                     System.out.println("Prune Point: " + benchmarkTime);
-                });
-            }
-
-            /*
-
-             */
-            @Override
-            public void process(Integer key, Pair<Cluster, Integer> value) {
-                //System.out.println("Put " + key);
-                this.pointWithDensities.put(key, value);
+                }
+                else {
+                    this.pointWithDensities.put(key, value);
+                }
             }
 
             @Override

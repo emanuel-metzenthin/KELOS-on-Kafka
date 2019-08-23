@@ -123,6 +123,8 @@ public class ClusteringProcessorSupplier implements ProcessorSupplier<Integer, A
                         this.tempClusters.delete(cluster.key);
                     }
 
+                    context.forward(-1, Cluster.createEndOfWindowToken(), To.child("AggregationProcessor"));
+
                     context.commit();
 
                     // Initialize cluster with old metrics for stability

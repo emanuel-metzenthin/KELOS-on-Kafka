@@ -1,8 +1,6 @@
 package KELOS.Processors;
 
 import KELOS.Cluster;
-import KELOS.Main;
-import com.google.common.collect.MinMaxPriorityQueue;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.commons.lang3.tuple.Triple;
 import org.apache.kafka.streams.KeyValue;
@@ -39,10 +37,18 @@ public class FilterProcessorSupplier implements ProcessorSupplier<Integer, Clust
                 this.topNClusters = (KeyValueStore<Integer, Cluster>) context.getStateStore("TopNClusters");
                 this.windowPoints = (KeyValueStore<Integer, Triple<Integer, ArrayList<Double>, Long>>) context.getStateStore("ClusterAssignments");
 
-                this.context.schedule(WINDOW_TIME, PunctuationType.STREAM_TIME, timestamp -> {
+            }
+
+            /*
+
+             */
+            @Override
+            public void process(Integer key, Cluster value) {
+
+                if (Cluster.isEndOfWindowToken(value)){
                     long start = System.currentTimeMillis();
 
-                    Date date = new Date(timestamp);
+                    Date date = new Date(this.context.timestamp());
                     DateFormat formatter = new SimpleDateFormat("HH:mm:ss.SSS");
                     formatter.setTimeZone(TimeZone.getTimeZone("Europe/Berlin"));
                     String dateFormatted = formatter.format(date);
@@ -59,7 +65,7 @@ public class FilterProcessorSupplier implements ProcessorSupplier<Integer, Clust
                     for(KeyValueIterator<Integer,Triple<Integer, ArrayList<Double>, Long>> i = this.windowPoints.all(); i.hasNext();) {
                         KeyValue<Integer, Triple<Integer, ArrayList<Double>, Long>> point = i.next();
 
-                        if (point.value.getRight() <= timestamp - 2 * WINDOW_TIME.toMillis()){
+                        if (point.value.getRight() <= this.context.timestamp()){
                             if(first) {
                                 System.out.println("Filter points from " + point.key);
                                 first = false;
@@ -86,6 +92,8 @@ public class FilterProcessorSupplier implements ProcessorSupplier<Integer, Clust
                         }
                     }
 
+                    this.context.forward(key, Pair.of(value, true));
+
                     for(KeyValueIterator<Integer, Cluster> i = this.topNClusters.all(); i.hasNext();) {
                         KeyValue<Integer, Cluster> cluster = i.next();
 
@@ -101,15 +109,10 @@ public class FilterProcessorSupplier implements ProcessorSupplier<Integer, Clust
                     benchmarks++;
 
                     System.out.println("Filter: " + benchmarkTime);
-                });
-            }
-
-            /*
-
-             */
-            @Override
-            public void process(Integer key, Cluster value) {
-                this.topNClusters.put(key, value);
+                }
+                else {
+                    this.topNClusters.put(key, value);
+                }
             }
 
             @Override

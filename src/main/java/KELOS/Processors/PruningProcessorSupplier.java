@@ -1,7 +1,6 @@
 package KELOS.Processors;
 
 import KELOS.Cluster;
-import com.google.common.collect.MinMaxPriorityQueue;
 import org.apache.commons.lang3.tuple.Triple;
 import org.apache.kafka.streams.KeyValue;
 import org.apache.kafka.streams.processor.*;
@@ -11,7 +10,6 @@ import org.apache.kafka.streams.state.KeyValueStore;
 
 import java.util.ArrayList;
 import java.util.Comparator;
-import java.util.Iterator;
 
 import static KELOS.Main.*;
 
@@ -56,9 +54,15 @@ public class PruningProcessorSupplier implements ProcessorSupplier<Integer, Clus
             this.context = context;
             this.clusterWithDensities = (KeyValueStore<Integer, Cluster>) context.getStateStore(this.densityStoreName);
             // this.topNClusters = (KeyValueStore<Integer, Cluster>) context.getStateStore(this.topNStoreName);
+        }
 
+        /*
 
-            this.context.schedule(WINDOW_TIME, PunctuationType.STREAM_TIME, timestamp -> {
+         */
+        @Override
+        public void process(Integer key, Cluster value) {
+
+            if (Cluster.isEndOfWindowToken(value)){
                 long start = System.currentTimeMillis();
                 /*MinMaxPriorityQueue<Triple<Integer, Double, Double>> queue = MinMaxPriorityQueue
                         .orderedBy(new KlomeComparator())
@@ -134,6 +138,8 @@ public class PruningProcessorSupplier implements ProcessorSupplier<Integer, Clus
                     }
                 }
 
+                this.context.forward(key, value);
+
                 /* for(KeyValueIterator<Integer, Cluster> i = this.topNClusters.all(); i.hasNext();) {
                     KeyValue<Integer, Cluster> cluster = i.next();
 
@@ -163,15 +169,10 @@ public class PruningProcessorSupplier implements ProcessorSupplier<Integer, Clus
                 benchmarks++;
 
                 System.out.println("Pruning Cluster: " + benchmarkTime);
-            });
-        }
-
-        /*
-
-         */
-        @Override
-        public void process(Integer key, Cluster value) {
-            this.clusterWithDensities.put(key, value);
+            }
+            else {
+                this.clusterWithDensities.put(key, value);
+            }
         }
 
         @Override

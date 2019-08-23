@@ -67,6 +67,22 @@ public class Cluster {
         maxDensityBound = 0;
     }
 
+    public static Cluster createEndOfWindowToken() {
+        Cluster cluster = new Cluster(1, 1);
+
+        cluster.size = -1;
+
+        return cluster;
+    }
+
+    public static boolean isEndOfWindowToken(Cluster cluster){
+        if (cluster == null){
+            return false;
+        }
+
+        return cluster.size == -1;
+    }
+
     public double distance(ArrayList<Double> record) {
 
         double sum_of_squares = 0;

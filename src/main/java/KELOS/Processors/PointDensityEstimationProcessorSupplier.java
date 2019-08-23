@@ -7,7 +7,6 @@ import org.apache.kafka.streams.KeyValue;
 import org.apache.kafka.streams.processor.Processor;
 import org.apache.kafka.streams.processor.ProcessorContext;
 import org.apache.kafka.streams.processor.ProcessorSupplier;
-import org.apache.kafka.streams.processor.PunctuationType;
 import org.apache.kafka.streams.state.KeyValueIterator;
 import org.apache.kafka.streams.state.KeyValueStore;
 
@@ -18,8 +17,6 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.TimeZone;
-
-import static KELOS.Main.WINDOW_TIME;
 
 public class PointDensityEstimationProcessorSupplier implements ProcessorSupplier<Integer, Pair<Cluster, Integer>> {
     /*
@@ -44,9 +41,13 @@ public class PointDensityEstimationProcessorSupplier implements ProcessorSupplie
         public void init(ProcessorContext context) {
             this.context = context;
             this.windowPoints = (KeyValueStore<Integer, Pair<Cluster, Integer>>) context.getStateStore("PointDensityBuffer");
+        }
 
-            this.context.schedule(WINDOW_TIME, PunctuationType.STREAM_TIME, timestamp -> {
-                Date date = new Date(timestamp);
+        @Override
+        public void process(Integer key, Pair<Cluster, Integer> value) {
+
+            if (Cluster.isEndOfWindowToken(value.getLeft())){
+                Date date = new Date(this.context.timestamp());
                 DateFormat formatter = new SimpleDateFormat("HH:mm:ss.SSS");
                 formatter.setTimeZone(TimeZone.getTimeZone("Europe/Berlin"));
                 String dateFormatted = formatter.format(date);
@@ -65,7 +66,7 @@ public class PointDensityEstimationProcessorSupplier implements ProcessorSupplie
                     if(!it.hasNext()) {
                         System.out.println("Density points last " + kv.key);
                     }
-                    Integer key = kv.key;
+                    Integer key2 = kv.key;
 
                     // Don't compute density for neighbors of neighbors
                     if (kv.value.getRight() == 2){
@@ -160,20 +161,21 @@ public class PointDensityEstimationProcessorSupplier implements ProcessorSupplie
 //                        System.out.println("Dens forward " + kv.key);
 //                    }
                     // System.out.println("Point density for " + key);
-                    this.context.forward(key, Pair.of(cluster, kv.value.getRight()));
+                    this.context.forward(key2, Pair.of(cluster, kv.value.getRight()));
                 }
+
+                this.context.forward(key, Pair.of(value.getLeft(), 0.0));
 
                 for(KeyValueIterator<Integer, Pair<Cluster, Integer>> i = this.windowPoints.all(); i.hasNext();) {
                     KeyValue<Integer, Pair<Cluster, Integer>> cluster = i.next();
 
                     this.windowPoints.delete(cluster.key);
                 }
-            });
-        }
+            }
+            else {
+                this.windowPoints.put(key, value);
+            }
 
-        @Override
-        public void process(Integer key, Pair<Cluster, Integer> cluster) {
-            this.windowPoints.put(key, cluster);
         }
 
         @Override
