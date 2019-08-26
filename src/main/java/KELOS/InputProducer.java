@@ -2,7 +2,7 @@ package KELOS;
 
 import java.io.File;
 import java.io.IOException;
-import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.sql.Time;
 import java.sql.Timestamp;
 import java.util.ArrayList;
@@ -43,7 +43,7 @@ public class InputProducer {
         File csvData = new File(InputProducer.CSV_DATA);
 
         try {
-            CSVParser parser = CSVParser.parse(csvData, Charset.forName("UTF-8"), CSVFormat.RFC4180);
+            CSVParser parser = CSVParser.parse(csvData, StandardCharsets.UTF_8, CSVFormat.RFC4180);
 
             Long timestamp = System.currentTimeMillis();
             double total_window_time_millis = Main.WINDOW_TIME.toMillis() * Main.AGGREGATION_WINDOWS;
