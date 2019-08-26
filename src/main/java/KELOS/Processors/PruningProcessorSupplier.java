@@ -121,10 +121,12 @@ public class PruningProcessorSupplier implements ProcessorSupplier<Integer, Clus
 
                 for (int i = 0; i < clusters_with_klome.size(); i++){
                     Triple<Integer, Double, Double> t1 = clusters_with_klome.get(i);
+                    int size = this.clusterWithDensities.get(t1.getLeft()).size;
+
                     for (int j = 0; j < clusters_with_klome.size(); j++){
                         Triple<Integer, Double, Double> t2 = clusters_with_klome.get(j);
                         if (t1.getRight() < t2.getMiddle()){
-                            before_counts[j] += 1;
+                            before_counts[j] += size;
                         }
                     }
                 }
