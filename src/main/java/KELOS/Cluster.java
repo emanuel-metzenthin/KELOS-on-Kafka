@@ -67,6 +67,22 @@ public class Cluster {
         maxDensityBound = 0;
     }
 
+    public static Cluster createEndOfWindowToken() {
+        Cluster cluster = new Cluster(1, 1);
+
+        cluster.size = -1;
+
+        return cluster;
+    }
+
+    public static boolean isEndOfWindowToken(Cluster cluster){
+        if (cluster == null){
+            return false;
+        }
+
+        return cluster.size == -1;
+    }
+
     public double distance(ArrayList<Double> record) {
 
         double sum_of_squares = 0;
@@ -106,27 +122,44 @@ public class Cluster {
     }
 
     public void merge(Cluster otherCluster){
-        this.size += otherCluster.size;
-        
-        for(int i = 0; i < this.linearSums.length; i++){
-            this.linearSums[i] += otherCluster.linearSums[i];
-            this.centroid[i] = this.linearSums[i] / this.size;
-            this.minimums[i] = Math.min(this.minimums[i], otherCluster.minimums[i]);
-            this.maximums[i] = Math.max(this.maximums[i], otherCluster.maximums[i]);
+        // We need to catch this, otherwise the minima / maxima get messed up
+        if (this.size == 0){
+            this.size = otherCluster.size;
+
+            for(int i = 0; i < this.linearSums.length; i++){
+                this.linearSums[i] = otherCluster.linearSums[i];
+                this.centroid[i] = otherCluster.centroid[i];
+                this.minimums[i] = otherCluster.minimums[i];
+                this.maximums[i] = otherCluster.maximums[i];
+            }
+        }
+        else if (otherCluster.size != 0){
+            this.size += otherCluster.size;
+
+            for(int i = 0; i < this.linearSums.length; i++){
+                this.linearSums[i] += otherCluster.linearSums[i];
+                this.centroid[i] = this.linearSums[i] / this.size;
+                this.minimums[i] = Math.min(this.minimums[i], otherCluster.minimums[i]);
+                this.maximums[i] = Math.max(this.maximums[i], otherCluster.maximums[i]);
+            }
         }
     }
 
-    public void calculateKNearestNeighbors(HashMap<Integer, Cluster> clusters){
+    public void calculateKNearestNeighbors(KeyValueIterator<Integer, Cluster> clusters, int ownIndex){
         HashMap<Integer, Double> distances = new HashMap<>();
         ArrayList<Integer> keys = new ArrayList<>();
 
-        for (Integer i : clusters.keySet()){
-            Cluster cluster = clusters.get(i);
+        while (clusters.hasNext()){
+            KeyValue<Integer, Cluster> kv = clusters.next();
 
-            double distance = this.distance(cluster);
+            if (kv.key != ownIndex){
+                Cluster cluster = kv.value;
 
-            distances.put(i, distance);
-            keys.add(i);
+                double distance = this.distance(cluster);
+
+                distances.put(kv.key, distance);
+                keys.add(kv.key);
+            }
         }
 
         keys.sort(new ArrayIndexComparator(distances));

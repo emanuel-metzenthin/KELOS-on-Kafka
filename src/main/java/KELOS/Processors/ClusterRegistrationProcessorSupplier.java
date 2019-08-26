@@ -20,7 +20,9 @@ public class ClusterRegistrationProcessorSupplier implements ProcessorSupplier<I
 
             @Override
             public void process(Integer key, Cluster value) {
-                this.state.put(key, value);
+                if (!Cluster.isEndOfWindowToken(value)){
+                    this.state.put(key, value);
+                }
             }
 
             @Override

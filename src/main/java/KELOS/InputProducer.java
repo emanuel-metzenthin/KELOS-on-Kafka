@@ -19,14 +19,15 @@ import org.apache.kafka.common.serialization.StringSerializer;
 
 public class InputProducer {
 
-    // static String CSV_DATA = "./data/kddcup.data_10_percent_corrected";
-    static String CSV_DATA = "./cluster_test_data.csv";
+//    static String CSV_DATA = "./cluster_test_data.csv";
+    //static String CSV_DATA = "./evaluation_data_unlabeled.csv";
+    static String CSV_DATA = "./test_data_unlabeled.csv";
     static String TOPIC = "data-input";
     static String APP_ID = "input-producer";
     static String SERVER_CONFIGS = "localhost:9092";
 
     public static void main(String[] args) {
-        runProducer(6000);
+        runProducer(500);
     }
 
     static void runProducer(int elementsPerWindow) {
@@ -49,23 +50,32 @@ public class InputProducer {
 
             int count = 0;
             for (CSVRecord csvRecord : parser) {
+
+//                if (count == 50000){
+//                    break;
+//                }
+
                 ArrayList<Double> numberRecord = new ArrayList<>();
 
                 for (int i = 0; i < csvRecord.size(); i++){
                     String val = csvRecord.get(i);
 
                     if (NumberUtils.isParsable(val)){
-                        double number = Double.parseDouble(val);
+                        double number = Double.valueOf(val);
                         numberRecord.add(number);
+                    } else {
+                        System.out.println("Not parsable " + val);
                     }
                 }
+
+                Thread.sleep(100);
 
                 timestamp += (int) (total_window_time_millis) / elementsPerWindow;
 
                 producer.send(new ProducerRecord<>(InputProducer.TOPIC, 0, timestamp, count, numberRecord));
                 count++;
             }
-        } catch (IOException e) {
+        } catch (IOException | InterruptedException e) {
             e.printStackTrace();
         }
 

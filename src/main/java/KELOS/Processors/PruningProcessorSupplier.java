@@ -1,7 +1,6 @@
 package KELOS.Processors;
 
 import KELOS.Cluster;
-import com.google.common.collect.MinMaxPriorityQueue;
 import org.apache.commons.lang3.tuple.Triple;
 import org.apache.kafka.streams.KeyValue;
 import org.apache.kafka.streams.processor.*;
@@ -11,7 +10,6 @@ import org.apache.kafka.streams.state.KeyValueStore;
 
 import java.util.ArrayList;
 import java.util.Comparator;
-import java.util.Iterator;
 
 import static KELOS.Main.*;
 
@@ -43,28 +41,41 @@ public class PruningProcessorSupplier implements ProcessorSupplier<Integer, Clus
         private KeyValueStore<Integer, Cluster> topNClusters;
         String densityStoreName;
         String topNStoreName;
+        private long benchmarkTime = 0;
+        private int benchmarks = 0;
 
         PruningProcessor(String densityStoreName, String topNStoreName){
             this.densityStoreName = densityStoreName;
-            this.topNStoreName = topNStoreName;
+            // this.topNStoreName = topNStoreName;
         }
 
         @Override
         public void init(ProcessorContext context) {
             this.context = context;
             this.clusterWithDensities = (KeyValueStore<Integer, Cluster>) context.getStateStore(this.densityStoreName);
-            this.topNClusters = (KeyValueStore<Integer, Cluster>) context.getStateStore(this.topNStoreName);
+            // this.topNClusters = (KeyValueStore<Integer, Cluster>) context.getStateStore(this.topNStoreName);
+        }
 
+        /*
 
-            this.context.schedule(WINDOW_TIME, PunctuationType.STREAM_TIME, timestamp -> {
-                MinMaxPriorityQueue<Triple<Integer, Double, Double>> queue = MinMaxPriorityQueue
+         */
+        @Override
+        public void process(Integer key, Cluster value) {
+
+            if (Cluster.isEndOfWindowToken(value)){
+                long start = System.currentTimeMillis();
+                /*MinMaxPriorityQueue<Triple<Integer, Double, Double>> queue = MinMaxPriorityQueue
                         .orderedBy(new KlomeComparator())
-                        .maximumSize(N)
-                        .create();
+                        // .maximumSize(N)
+                        .create();*/
 
+                ArrayList<Triple<Integer, Double, Double>> clusters_with_klome = new ArrayList<>();
 
+                // System.out.println("Pruning at " + timestamp);
                 for(KeyValueIterator<Integer, Cluster> i = this.clusterWithDensities.all(); i.hasNext();) {
                     KeyValue<Integer, Cluster> cluster = i.next();
+
+                    // System.out.println("Pruning cluster " + cluster.key);
 
                     double knnMean = 0;
                     double knnVariance = 0;
@@ -90,38 +101,80 @@ public class PruningProcessorSupplier implements ProcessorSupplier<Integer, Clus
                     double klomeHigh = (cluster.value.maxDensityBound - knnMean) / knnStddev;
                     Triple<Integer, Double, Double> triple = Triple.of(cluster.key, klomeLow, klomeHigh);
 
-                    if (queue.size() < N){
+                    // System.out.println("Cluster: " + cluster.key + " KLOMELow: " + klomeLow + " KLOMEHigh: " + klomeHigh);
+
+                    clusters_with_klome.add(triple);
+
+                    /*if (queue.size() < N){
                         queue.add(triple);
                     }
-                    else if (klomeHigh < queue.peek().getMiddle()){
-                        queue.poll();
+                    else if (klomeHigh < queue.peekLast().getMiddle()){
+                        queue.pollLast();
                         queue.add(triple);
                     }
-                    else if (klomeLow <= queue.peek().getRight()){
+                    else if (klomeLow <= queue.peekLast().getRight()){
                         queue.add(triple);
+                    }*/
+                }
+
+                int[] before_counts = new int[clusters_with_klome.size()];
+
+                for (int i = 0; i < clusters_with_klome.size(); i++){
+                    Triple<Integer, Double, Double> t1 = clusters_with_klome.get(i);
+                    int size = this.clusterWithDensities.get(t1.getLeft()).size;
+
+                    for (int j = 0; j < clusters_with_klome.size(); j++){
+                        Triple<Integer, Double, Double> t2 = clusters_with_klome.get(j);
+                        if (t1.getRight() < t2.getMiddle()){
+                            before_counts[j] += size;
+                        }
                     }
                 }
 
-                for(KeyValueIterator<Integer, Cluster> i = this.topNClusters.all(); i.hasNext();) {
+                for (int i = 0; i < before_counts.length; i++) {
+                    if (before_counts[i] < N){
+                        int cluster = clusters_with_klome.get(i).getLeft();
+
+                        // System.out.println("TOPNCluster: " + cluster);
+                        this.context.forward(cluster, this.clusterWithDensities.get(cluster));
+                    }
+                }
+
+                this.context.forward(key, value);
+
+                /* for(KeyValueIterator<Integer, Cluster> i = this.topNClusters.all(); i.hasNext();) {
                     KeyValue<Integer, Cluster> cluster = i.next();
 
                     this.topNClusters.delete(cluster.key);
-                }
+                }*/
 
-                for (Triple<Integer, Double, Double> t : queue) {
-                    this.topNClusters.put(t.getLeft(), this.clusterWithDensities.get(t.getLeft()));
+                /*for (Triple<Integer, Double, Double> t : queue) {
+                    System.out.println("TOPNCluster: " + t.getLeft());
+                    this.context.forward(t.getLeft(), this.clusterWithDensities.get(t.getLeft()));
+                    // this.topNClusters.put(t.getLeft(), this.clusterWithDensities.get(t.getLeft()));
+                }*/
+
+                for(KeyValueIterator<Integer, Cluster> i = this.clusterWithDensities.all(); i.hasNext();) {
+                    KeyValue<Integer, Cluster> cluster = i.next();
+
+                    this.clusterWithDensities.delete(cluster.key);
                 }
 
                 context.commit();
-            });
-        }
 
-        /*
+                if(benchmarkTime == 0) {
+                    benchmarkTime = System.currentTimeMillis() - start;
+                } else {
+                    benchmarkTime = (benchmarks * benchmarkTime + (System.currentTimeMillis() - start)) / (benchmarks + 1);
+                }
 
-         */
-        @Override
-        public void process(Integer key, Cluster value) {
-            this.clusterWithDensities.put(key, value);
+                benchmarks++;
+
+                System.out.println("Pruning Cluster: " + benchmarkTime);
+            }
+            else {
+                this.clusterWithDensities.put(key, value);
+            }
         }
 
         @Override

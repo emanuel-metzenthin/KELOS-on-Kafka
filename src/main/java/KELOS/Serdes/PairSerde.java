@@ -1,5 +1,6 @@
 package KELOS.Serdes;
 
+import KELOS.Cluster;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.Serde;
@@ -9,10 +10,10 @@ import java.util.ArrayList;
 import java.util.Map;
 
 
-public class PairSerde implements Serde<Pair<Integer, ArrayList<Double>>> {
+public class PairSerde implements Serde<Pair<Cluster, Integer>> {
 
-    private Serializer<Pair<Integer, ArrayList<Double>>> serializer;
-    private Deserializer<Pair<Integer, ArrayList<Double>>> deserializer;
+    private Serializer<Pair<Cluster, Integer>> serializer;
+    private Deserializer<Pair<Cluster, Integer>> deserializer;
 
     public PairSerde(){
         this.serializer = new PairSerializer();
@@ -30,12 +31,12 @@ public class PairSerde implements Serde<Pair<Integer, ArrayList<Double>>> {
     }
 
     @Override
-    public Serializer<Pair<Integer, ArrayList<Double>>> serializer() {
+    public Serializer<Pair<Cluster, Integer>> serializer() {
         return serializer;
     }
 
     @Override
-    public Deserializer<Pair<Integer, ArrayList<Double>>> deserializer() {
+    public Deserializer<Pair<Cluster, Integer>> deserializer() {
         return deserializer;
     }
 }

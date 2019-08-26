@@ -1,17 +1,20 @@
 package KELOS;
 
+import java.io.BufferedWriter;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
 import java.time.Duration;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Properties;
 
-import KELOS.Serdes.ArrayListDeserializer;
 import KELOS.Serdes.ClusterDeserializer;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
-import org.apache.kafka.common.serialization.DoubleDeserializer;
 import org.apache.kafka.common.serialization.IntegerDeserializer;
 
 import static KELOS.Main.*;
@@ -39,23 +42,22 @@ public class ClusterConsumer {
         consumer.subscribe(Collections.singletonList(DENSITIES_TOPIC));
 
         while (true){
-            ConsumerRecords<Integer, Cluster> records = consumer.poll(Duration.ofSeconds(1));
-            int count = 0;
+            try {
+                BufferedWriter writer = Files.newBufferedWriter(Paths.get("./clusters.csv"), StandardCharsets.UTF_8, StandardOpenOption.APPEND);
 
-            for (ConsumerRecord<Integer,Cluster> record : records) {
-                // System.out.print("KELOS.Cluster: " + record.key() + ", Size = " + record.value().size + " Centroid at [");
-                System.out.print("\n KELOS.Cluster: " + record.key() + ", Density = " + record.value().density + ", " +
-                        record.value().minDensityBound + ", "  + record.value().maxDensityBound);
-//
-                count ++;
-//                for (double value : record.value().centroid){
-//                    System.out.print("" + value + ", ");
-//                }
-//
-//                System.out.println("]");
+                ConsumerRecords<Integer, Cluster> records = consumer.poll(Duration.ofSeconds(1));
+
+                for (ConsumerRecord<Integer, Cluster> record : records) {
+                    String line = "" + record.key();
+                    for(double d : record.value().centroid) {
+                        line += "," + d;
+                    }
+                    writer.append(line + "\n");
+                }
+                writer.close();
+            } catch (IOException e) {
+                e.printStackTrace();
             }
-
-            // System.out.print("\n Cluster count: " + count);
         }
     }
 }
