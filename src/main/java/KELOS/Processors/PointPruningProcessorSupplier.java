@@ -28,7 +28,7 @@ public class PointPruningProcessorSupplier implements ProcessorSupplier<Integer,
     }
 
     /*
-        Calculates the KLOME_ score of each point
+        Calculates the KLOME-score of each candidate point
      */
     @Override
     public Processor<Integer, Pair<Cluster, Integer>> get() {
@@ -50,7 +50,6 @@ public class PointPruningProcessorSupplier implements ProcessorSupplier<Integer,
              */
             @Override
             public void process(Integer key, Pair<Cluster, Integer> value) {
-                //System.out.println("Put " + key);
 
                 if (Cluster.isEndOfWindowToken(value.getLeft())){
                     Date date = new Date(this.context.timestamp());
@@ -120,7 +119,6 @@ public class PointPruningProcessorSupplier implements ProcessorSupplier<Integer,
                             pointArrayList.add(point.value.getLeft().centroid[k]);
                         }
 
-                        // Pair pointWithKlome = Pair.of(pointArrayList, klome);
                         Pair pointWithKlome = Pair.of(point.key, klome);
 
                         queue.add(pointWithKlome);

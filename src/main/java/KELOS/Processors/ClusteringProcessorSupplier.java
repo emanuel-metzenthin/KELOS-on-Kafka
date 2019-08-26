@@ -1,7 +1,6 @@
 package KELOS.Processors;
 
 import KELOS.Cluster;
-import org.apache.commons.lang3.tuple.Pair;
 import org.apache.commons.lang3.tuple.Triple;
 import org.apache.kafka.streams.KeyValue;
 import org.apache.kafka.streams.processor.*;
@@ -41,7 +40,6 @@ public class ClusteringProcessorSupplier implements ProcessorSupplier<Integer, A
                 int clusterIdx = 0;
                 int highestCluster = 0; // Highest cluster index, needed to create new clusters
 
-                // System.out.println("CLustering: processing point " + key);
                 for(KeyValueIterator<Integer, Cluster> i = this.tempClusters.all(); i.hasNext();) {
                     KeyValue<Integer, Cluster> c = i.next();
 
@@ -63,14 +61,12 @@ public class ClusteringProcessorSupplier implements ProcessorSupplier<Integer, A
                     this.clusterAssignments.put(key, triple);
 
                     this.context.forward(key, triple, To.child("ClusterAssignmentSink"));
-                    // this.context.forward(key, pair, To.child("FilterProcessor"));
                 } else {
                     Triple<Integer, ArrayList<Double>, Long> triple = Triple.of(highestCluster + 1, value, this.context.timestamp());
                     this.tempClusters.put(highestCluster + 1, new Cluster(value, K));
 
                     this.clusterAssignments.put(key, triple);
                     this.context.forward(key, triple, To.child("ClusterAssignmentSink"));
-                    // this.context.forward(key, pair, To.child("FilterProcessor"));
                 }
             }
 

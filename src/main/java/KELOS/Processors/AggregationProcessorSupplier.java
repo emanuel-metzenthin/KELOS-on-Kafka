@@ -66,11 +66,9 @@ public class AggregationProcessorSupplier implements ProcessorSupplier<Integer, 
                     newList.add(value);
 
                     if (aggregate.size == 0){
-                        // System.out.println("Forward " + key + " Size = null");
                         this.context.forward(key, null); // Delete empty cluster
                     }
                     else {
-                        // System.out.println("Forward " + key + " Size = " + aggregate.size);
                         this.context.forward(key, aggregate);
                     }
 

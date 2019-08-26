@@ -16,16 +16,9 @@ import static KELOS.Main.*;
 
 public class PruningProcessorSupplier implements ProcessorSupplier<Integer, Cluster> {
 
-    private class KlomeComparator implements Comparator<Triple<Integer, Double, Double>> {
-        @Override
-        public int compare(Triple<Integer, Double, Double> val1, Triple<Integer, Double, Double> val2)
-        {
-            return val1.getRight().compareTo(val2.getRight());
-        }
-    }
-
     /*
-        Calculates the KLOME_low and KLOME_high for each cluster
+        Calculates the KLOME_low and KLOME_high for each cluster, then prunes clusters that are guaranteed to not
+        contain any outliers.
      */
     private String densityStoreName;
     private String topNStoreName;
@@ -64,18 +57,11 @@ public class PruningProcessorSupplier implements ProcessorSupplier<Integer, Clus
 
             if (Cluster.isEndOfWindowToken(value)){
                 long start = System.currentTimeMillis();
-                /*MinMaxPriorityQueue<Triple<Integer, Double, Double>> queue = MinMaxPriorityQueue
-                        .orderedBy(new KlomeComparator())
-                        // .maximumSize(N)
-                        .create();*/
 
                 ArrayList<Triple<Integer, Double, Double>> clusters_with_klome = new ArrayList<>();
 
-                // System.out.println("Pruning at " + timestamp);
                 for(KeyValueIterator<Integer, Cluster> i = this.clusterWithDensities.all(); i.hasNext();) {
                     KeyValue<Integer, Cluster> cluster = i.next();
-
-                    // System.out.println("Pruning cluster " + cluster.key);
 
                     double knnMean = 0;
                     double knnVariance = 0;
@@ -101,20 +87,7 @@ public class PruningProcessorSupplier implements ProcessorSupplier<Integer, Clus
                     double klomeHigh = (cluster.value.maxDensityBound - knnMean) / knnStddev;
                     Triple<Integer, Double, Double> triple = Triple.of(cluster.key, klomeLow, klomeHigh);
 
-                    // System.out.println("Cluster: " + cluster.key + " KLOMELow: " + klomeLow + " KLOMEHigh: " + klomeHigh);
-
                     clusters_with_klome.add(triple);
-
-                    /*if (queue.size() < N){
-                        queue.add(triple);
-                    }
-                    else if (klomeHigh < queue.peekLast().getMiddle()){
-                        queue.pollLast();
-                        queue.add(triple);
-                    }
-                    else if (klomeLow <= queue.peekLast().getRight()){
-                        queue.add(triple);
-                    }*/
                 }
 
                 int[] before_counts = new int[clusters_with_klome.size()];
@@ -135,24 +108,11 @@ public class PruningProcessorSupplier implements ProcessorSupplier<Integer, Clus
                     if (before_counts[i] < N){
                         int cluster = clusters_with_klome.get(i).getLeft();
 
-                        // System.out.println("TOPNCluster: " + cluster);
                         this.context.forward(cluster, this.clusterWithDensities.get(cluster));
                     }
                 }
 
                 this.context.forward(key, value);
-
-                /* for(KeyValueIterator<Integer, Cluster> i = this.topNClusters.all(); i.hasNext();) {
-                    KeyValue<Integer, Cluster> cluster = i.next();
-
-                    this.topNClusters.delete(cluster.key);
-                }*/
-
-                /*for (Triple<Integer, Double, Double> t : queue) {
-                    System.out.println("TOPNCluster: " + t.getLeft());
-                    this.context.forward(t.getLeft(), this.clusterWithDensities.get(t.getLeft()));
-                    // this.topNClusters.put(t.getLeft(), this.clusterWithDensities.get(t.getLeft()));
-                }*/
 
                 for(KeyValueIterator<Integer, Cluster> i = this.clusterWithDensities.all(); i.hasNext();) {
                     KeyValue<Integer, Cluster> cluster = i.next();

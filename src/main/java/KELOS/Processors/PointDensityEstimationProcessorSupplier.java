@@ -20,7 +20,7 @@ import java.util.TimeZone;
 
 public class PointDensityEstimationProcessorSupplier implements ProcessorSupplier<Integer, Pair<Cluster, Integer>> {
     /*
-        Estimates the density for each Cluster.
+        Estimates the density for the candidates as well as for the nearest neighbors of the candidates.
      */
     private String storeName;
 
@@ -157,10 +157,7 @@ public class PointDensityEstimationProcessorSupplier implements ProcessorSupplie
                         cluster.minDensityBound += minProductKernel * clusterWeights.get(i);
                         cluster.maxDensityBound += maxProductKernel * clusterWeights.get(i);
                     }
-//                    if(this.storeName == "PointDensityBuffer"){
-//                        System.out.println("Dens forward " + kv.key);
-//                    }
-                    // System.out.println("Point density for " + key);
+
                     this.context.forward(key2, Pair.of(cluster, kv.value.getRight()));
                 }
 

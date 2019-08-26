@@ -18,7 +18,9 @@ import java.util.HashSet;
 import java.util.TimeZone;
 
 /*
-    Finds the K nearest neighbors for each input point.
+    Finds the K nearest neighbors for each candidate point, as well as for the K nearest neighbors of the candidates.
+    The latter is necessary because we also need to compute the density for the neighbors to calculate the relative density
+    (KLOME-Score) for a candidate.
  */
 public class KNearestPointsProcessorSupplier implements ProcessorSupplier<Integer, Pair<Cluster, Boolean>> {
 
@@ -43,13 +45,7 @@ public class KNearestPointsProcessorSupplier implements ProcessorSupplier<Intege
 
                 if (Cluster.isEndOfWindowToken(value.getLeft())){
                     long start = System.currentTimeMillis();
-                    /*
-                    HashMap<Integer, Cluster> uniqueClusters = new HashMap<>();
-                    for(KeyValueIterator<Windowed<Integer>, Cluster> i = this.clusters.all(); i.hasNext();) {
-                        KeyValue<Windowed<Integer>, Cluster> cluster = i.next();
-                        uniqueClusters.put(cluster.key.key(), cluster.value);
-                    }
-                    */
+
                     Date date = new Date(this.context.timestamp());
                     DateFormat formatter = new SimpleDateFormat("HH:mm:ss.SSS");
                     formatter.setTimeZone(TimeZone.getTimeZone("Europe/Berlin"));
@@ -82,7 +78,6 @@ public class KNearestPointsProcessorSupplier implements ProcessorSupplier<Intege
 
                         Pair<Cluster, Integer> pair = Pair.of(cluster, 0);
                         context.forward(kv.key, pair);
-                        // System.out.println("KNN Points candidate forward: " + kv.key);
 
                         this.candidatePoints.delete(kv.key);
                     }
@@ -122,7 +117,6 @@ public class KNearestPointsProcessorSupplier implements ProcessorSupplier<Intege
 
                         Pair<Cluster, Integer> pair = Pair.of(cluster, 1);
                         context.forward(index, pair);
-                        // System.out.println("KNN Points KNN forward: " + index);
                     }
 
                     for (int index : knnKNNs){
@@ -130,7 +124,6 @@ public class KNearestPointsProcessorSupplier implements ProcessorSupplier<Intege
 
                         Pair<Cluster, Integer> pair = Pair.of(cluster, 2);
                         context.forward(index, pair);
-                        // System.out.println("KNN Points neighbor KNN forward: " + index);
                     }
 
                     context.forward(key, Pair.of(value.getLeft(), 0));

@@ -2,7 +2,6 @@ package KELOS;
 
 import KELOS.Processors.*;
 import KELOS.Serdes.*;
-import org.apache.kafka.common.serialization.DoubleSerializer;
 import org.apache.kafka.common.serialization.IntegerDeserializer;
 import org.apache.kafka.common.serialization.IntegerSerializer;
 import org.apache.kafka.common.serialization.Serdes;

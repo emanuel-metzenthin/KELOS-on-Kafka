@@ -39,13 +39,7 @@ public class KNearestClusterProcessorSupplier implements ProcessorSupplier<Integ
 
                 if (Cluster.isEndOfWindowToken(value)){
                     long start = System.currentTimeMillis();
-                    /*
-                    HashMap<Integer, Cluster> uniqueClusters = new HashMap<>();
-                    for(KeyValueIterator<Windowed<Integer>, Cluster> i = this.clusters.all(); i.hasNext();) {
-                        KeyValue<Windowed<Integer>, Cluster> cluster = i.next();
-                        uniqueClusters.put(cluster.key.key(), cluster.value);
-                    }
-                    */
+
                     Date date = new Date(this.context.timestamp());
                     DateFormat formatter = new SimpleDateFormat("HH:mm:ss.SSS");
                     formatter.setTimeZone(TimeZone.getTimeZone("Europe/Berlin"));
@@ -59,8 +53,6 @@ public class KNearestClusterProcessorSupplier implements ProcessorSupplier<Integ
                         Cluster cluster = kv.value;
 
                         cluster.calculateKNearestNeighbors(this.clusters.all(), kv.key);
-
-                        // System.out.println("KNN forward: " + kv.key);
 
                         context.forward(kv.key, cluster);
                         context.commit();

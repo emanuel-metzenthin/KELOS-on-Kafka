@@ -40,11 +40,9 @@ public class DensityEstimationProcessorSupplier implements ProcessorSupplier<Int
 
         @Override
         public void process(Integer key, Cluster value) {
-//            System.out.println("Density process " + key);
 
             if (Cluster.isEndOfWindowToken(value)){
                 long start = System.currentTimeMillis();
-                // System.out.println("Density estimation at: " + timestamp);
                 for(KeyValueIterator<Integer, Cluster> it = this.clusters.all(); it.hasNext();) {
                     KeyValue<Integer, Cluster> kv = it.next();
                     Integer key2 = kv.key;
@@ -132,10 +130,7 @@ public class DensityEstimationProcessorSupplier implements ProcessorSupplier<Int
                         cluster.minDensityBound += minProductKernel * clusterWeights.get(i);
                         cluster.maxDensityBound += maxProductKernel * clusterWeights.get(i);
                     }
-//                    if(this.storeName == "PointDensityBuffer"){
-//                        System.out.println("Dens forward " + kv.key);
-//                    }
-                    // System.out.println("Density for " + key);
+
                     this.context.forward(key2, cluster);
                 }
 
@@ -154,8 +149,6 @@ public class DensityEstimationProcessorSupplier implements ProcessorSupplier<Int
                 }
 
                 benchmarks++;
-
-                // System.out.println("Density: " + benchmarkTime);
             }
             else {
 
