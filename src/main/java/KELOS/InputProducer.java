@@ -66,14 +66,12 @@ public class InputProducer {
                     }
                 }
 
-                Thread.sleep(100);
-
                 timestamp += (int) (total_window_time_millis) / elementsPerWindow;
 
                 producer.send(new ProducerRecord<>(InputProducer.TOPIC, 0, timestamp, count, numberRecord));
                 count++;
             }
-        } catch (IOException | InterruptedException e) {
+        } catch (IOException e) {
             e.printStackTrace();
         }
 
