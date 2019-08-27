@@ -13,19 +13,20 @@ import org.apache.commons.csv.CSVRecord;
 import org.apache.commons.lang3.math.NumberUtils;
 import org.apache.kafka.clients.producer.*;
 import org.apache.kafka.common.serialization.IntegerSerializer;
-import org.apache.kafka.common.serialization.StringSerializer;
 
 public class InputProducer {
 
-//    static String CSV_DATA = "./cluster_test_data.csv";
+    //static String CSV_DATA = "./cluster_test_data.csv";
     //static String CSV_DATA = "./evaluation_data_unlabeled.csv";
     static String CSV_DATA = "./test_data_unlabeled.csv";
     static String TOPIC = "data-input";
     static String APP_ID = "input-producer";
     static String SERVER_CONFIGS = "localhost:9092";
 
+    static int ELEMENTS_PER_WINDOW = 500;
+
     public static void main(String[] args) {
-        runProducer(500);
+        runProducer(ELEMENTS_PER_WINDOW);
     }
 
     static void runProducer(int elementsPerWindow) {
@@ -48,11 +49,6 @@ public class InputProducer {
 
             int count = 0;
             for (CSVRecord csvRecord : parser) {
-
-//                if (count == 50000){
-//                    break;
-//                }
-
                 ArrayList<Double> numberRecord = new ArrayList<>();
 
                 for (int i = 0; i < csvRecord.size(); i++){

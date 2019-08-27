@@ -1,6 +1,7 @@
 package KELOS;
 
 import java.io.BufferedWriter;
+import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -40,6 +41,18 @@ public class ClusterConsumer {
         KafkaConsumer<Integer, Cluster> consumer = new KafkaConsumer<>(props);
 
         consumer.subscribe(Collections.singletonList(DENSITIES_TOPIC));
+
+        try {
+            File file = new File("./clusters.csv");
+
+            file.createNewFile();
+
+            if(file.delete()) {
+                file.createNewFile();
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
 
         while (true){
             try {

@@ -8,23 +8,17 @@ import org.apache.kafka.streams.processor.ProcessorSupplier;
 import org.apache.kafka.streams.state.KeyValueIterator;
 import org.apache.kafka.streams.state.KeyValueStore;
 
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
-import java.util.Date;
-import java.util.TimeZone;
-
-/*
-    Finds the K nearest neighbors for each input Cluster.
- */
 public class KNearestClusterProcessorSupplier implements ProcessorSupplier<Integer, Cluster> {
 
+    /*
+        Finds the K nearest neighbors for each input Cluster.
+    */
     @Override
     public Processor<Integer, Cluster> get() {
         return new Processor<Integer, Cluster>() {
             private ProcessorContext context;
             private KeyValueStore<Integer, Cluster> clusters;
+
             private long benchmarkTime = 0;
             private int benchmarks = 0;
 
@@ -36,17 +30,8 @@ public class KNearestClusterProcessorSupplier implements ProcessorSupplier<Integ
 
             @Override
             public void process(Integer key, Cluster value) {
-
                 if (Cluster.isEndOfWindowToken(value)){
                     long start = System.currentTimeMillis();
-
-                    Date date = new Date(this.context.timestamp());
-                    DateFormat formatter = new SimpleDateFormat("HH:mm:ss.SSS");
-                    formatter.setTimeZone(TimeZone.getTimeZone("Europe/Berlin"));
-                    String dateFormatted = formatter.format(date);
-                    String systime = LocalDateTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss.SSS"));
-
-                    // System.out.println("New KNN window: " + dateFormatted + " System time : " + systime);
 
                     for (KeyValueIterator<Integer, Cluster> it = this.clusters.all(); it.hasNext(); ) {
                         KeyValue<Integer, Cluster> kv = it.next();
@@ -58,6 +43,7 @@ public class KNearestClusterProcessorSupplier implements ProcessorSupplier<Integ
                         context.commit();
                     }
 
+                    // Forward EndOfWindowToken
                     context.forward(key, value);
 
                     for (KeyValueIterator<Integer, Cluster> it = this.clusters.all(); it.hasNext(); ) {

@@ -32,48 +32,52 @@ public class AggregationProcessorSupplier implements ProcessorSupplier<Integer, 
 
             @Override
             public void process(Integer key, Cluster value) {
-
+                // Finish window processing if message is EndOfWindowToken
                 if (Cluster.isEndOfWindowToken(value)){
                     this.context.forward(key, value);
 
                     return;
                 }
 
-                ArrayList<Cluster> oldList = this.clusterStates.get(key);
+                // Get list of previous states of the cluster at hand
+                ArrayList<Cluster> previousStates = this.clusterStates.get(key);
 
-                if (oldList == null || oldList.size() == 0 || oldList.get(0) == null) {
+                if (previousStates == null || previousStates.size() == 0 || previousStates.get(0) == null) {
+                    // Avoid adding old empty clusters again
                     if (value.size > 0){
-                        ArrayList<Cluster> newList = new ArrayList<>();
-                        newList.add(value);
+                        ArrayList<Cluster> futureStates = new ArrayList<>();
+                        futureStates.add(value);
 
                         this.context.forward(key, value);
-                        this.clusterStates.put(key, newList);
+                        this.clusterStates.put(key, futureStates);
                     }
                 } else {
-                    ArrayList<Cluster> newList = oldList;
+                    ArrayList<Cluster> futureStates = previousStates;
 
-                    if (oldList.size() >= Main.AGGREGATION_WINDOWS){
-                        newList.remove(0);
+                    // Limit maximum sub-window pane count
+                    if (previousStates.size() >= Main.AGGREGATION_WINDOWS){
+                        futureStates.remove(0);
                     }
 
+                    // Merge cluster states
                     Cluster aggregate = new Cluster(value.centroid.length, K);
                     aggregate.merge(value);
 
-                    for (Cluster c : newList){
+                    for (Cluster c : futureStates){
                         aggregate.merge(c);
                     }
 
-                    newList.add(value);
+                    futureStates.add(value);
 
                     if (aggregate.size == 0){
-                        this.context.forward(key, null); // Delete empty cluster
+                        // Delete empty clusters
+                        this.context.forward(key, null);
                     }
                     else {
                         this.context.forward(key, aggregate);
                     }
 
-
-                    this.clusterStates.put(key, newList);
+                    this.clusterStates.put(key, futureStates);
                 }
             }
 

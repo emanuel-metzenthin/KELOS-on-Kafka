@@ -7,22 +7,17 @@ import org.apache.kafka.streams.processor.*;
 import org.apache.kafka.streams.state.KeyValueIterator;
 import org.apache.kafka.streams.state.KeyValueStore;
 import org.apache.kafka.streams.state.WindowStore;
-
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
-import java.util.Date;
-import java.util.TimeZone;
 
 import static KELOS.Main.*;
 
 public class ClusteringProcessorSupplier implements ProcessorSupplier<Integer, ArrayList<Double>> {
 
     /*
-        Clusters data points in sub-windows and emits cluster meta-data for the ClusterRegistrationProcessor
-        to aggregate them into the global store.
+        Clusters data points in sub-window panes and emits cluster meta-data for the ClusterRegistrationProcessor
+        to store into the global store. Assigns a point to its nearest cluster if the distance is below
+        the threshold, otherwise it will create a new cluster.
+        These panes then get merged to whole windows by the following AggregationProcessor.
      */
     @Override
     public Processor<Integer, ArrayList<Double>> get() {
@@ -31,42 +26,52 @@ public class ClusteringProcessorSupplier implements ProcessorSupplier<Integer, A
             private KeyValueStore<Integer, ArrayList<Double>> pointBuffer;
             private KeyValueStore<Integer, Cluster> tempClusters;
             private WindowStore<Integer, Triple<Integer, ArrayList<Double>, Long>> clusterAssignments;
+            private KeyValueStore<Integer, Cluster> clusters;
+
             private long benchmarkTime = 0;
             private int benchmarks = 0;
 
+            /*
+                Assigns an incoming point to a cluster or creates a new cluster.
+                The ArrayList value contains the individual coordinates of the point.
+             */
             private void processPoint(Integer key, ArrayList<Double> value){
-
+                // Find nearest cluster
                 double minDist = Double.MAX_VALUE;
                 Cluster cluster = null;
                 int clusterIdx = 0;
-                int highestCluster = 0; // Highest cluster index, needed to create new clusters
+                int highestClusterIdx = 0; // Keep highest index value for creating new clusters
 
                 for(KeyValueIterator<Integer, Cluster> i = this.tempClusters.all(); i.hasNext();) {
-                    KeyValue<Integer, Cluster> c = i.next();
+                    KeyValue<Integer, Cluster> tmpCluster = i.next();
 
-                    double dist = c.value.distance(value);
+                    double dist = tmpCluster.value.distance(value);
 
                     if (dist < minDist) {
                         minDist = dist;
-                        cluster = c.value;
-                        clusterIdx = c.key;
+                        cluster = tmpCluster.value;
+                        clusterIdx = tmpCluster.key;
                     }
 
-                    highestCluster = Math.max(highestCluster, c.key);
+                    highestClusterIdx = Math.max(highestClusterIdx, tmpCluster.key);
                 }
 
                 if (minDist < CLUSTERING_DISTANCE_THRESHOLD) {
+                    // Create cluster assignment triple
                     Triple<Integer, ArrayList<Double>, Long> triple = Triple.of(clusterIdx, value, this.context.timestamp());
+                    this.clusterAssignments.put(key, triple);
+
                     cluster.addRecord(value);
                     this.tempClusters.put(clusterIdx, cluster);
-                    this.clusterAssignments.put(key, triple);
 
                     this.context.forward(key, triple, To.child("ClusterAssignmentSink"));
                 } else {
-                    Triple<Integer, ArrayList<Double>, Long> triple = Triple.of(highestCluster + 1, value, this.context.timestamp());
-                    this.tempClusters.put(highestCluster + 1, new Cluster(value, K));
-
+                    // Create cluster assignment triple for new cluster
+                    Triple<Integer, ArrayList<Double>, Long> triple = Triple.of(highestClusterIdx + 1, value, this.context.timestamp());
                     this.clusterAssignments.put(key, triple);
+
+                    this.tempClusters.put(highestClusterIdx + 1, new Cluster(value, K));
+
                     this.context.forward(key, triple, To.child("ClusterAssignmentSink"));
                 }
             }
@@ -77,21 +82,11 @@ public class ClusteringProcessorSupplier implements ProcessorSupplier<Integer, A
                 this.pointBuffer = (KeyValueStore<Integer, ArrayList<Double>>) context.getStateStore("ClusteringBuffer");
                 this.tempClusters = (KeyValueStore<Integer, Cluster>) context.getStateStore("TempClusters");
                 this.clusterAssignments = (WindowStore<Integer, Triple<Integer, ArrayList<Double>, Long>>) context.getStateStore("ClusterAssignments");
-
-                KeyValueStore<Integer, Cluster> clusters = (KeyValueStore<Integer, Cluster>) context.getStateStore("Clusters");
+                this.clusters = (KeyValueStore<Integer, Cluster>) context.getStateStore("Clusters");
 
                 // Emit cluster meta data after sub-window has been processed
                 this.context.schedule(WINDOW_TIME, PunctuationType.STREAM_TIME, timestamp -> {
-                    Date date = new Date(timestamp);
-                    DateFormat formatter = new SimpleDateFormat("HH:mm:ss.SSS");
-                    formatter.setTimeZone(TimeZone.getTimeZone("Europe/Berlin"));
-                    String dateFormatted = formatter.format(date);
-                    String systime = LocalDateTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss.SSS"));
-
-                    System.out.println("New Clustering window: " + dateFormatted + " System time : " + systime);
-
                     long start = System.currentTimeMillis();
-
                     boolean first = true;
 
                     // Perform clustering
@@ -115,16 +110,18 @@ public class ClusteringProcessorSupplier implements ProcessorSupplier<Integer, A
                     for(KeyValueIterator<Integer, Cluster> i = this.tempClusters.all(); i.hasNext();) {
                         KeyValue<Integer, Cluster> cluster = i.next();
                         cluster.value.updateMetrics();
+
                         context.forward(cluster.key, cluster.value, To.child("AggregationProcessor"));
 
                         this.tempClusters.delete(cluster.key);
                     }
 
+                    // Forward end of window token
                     context.forward(-1, Cluster.createEndOfWindowToken(), To.child("AggregationProcessor"));
 
                     context.commit();
 
-                    // Initialize cluster with old metrics for stability
+                    // Initialize cluster with old metrics for stability in next sub-window pane
                     for(KeyValueIterator<Integer, Cluster> i = clusters.all(); i.hasNext();) {
                         KeyValue<Integer, Cluster> cluster = i.next();
                         Cluster emptyCluster = new Cluster(cluster.value, K);
@@ -132,8 +129,6 @@ public class ClusteringProcessorSupplier implements ProcessorSupplier<Integer, A
 
                         this.tempClusters.put(cluster.key, emptyCluster);
                     }
-
-
 
                     if(benchmarkTime == 0) {
                         benchmarkTime = System.currentTimeMillis() - start;
@@ -147,14 +142,8 @@ public class ClusteringProcessorSupplier implements ProcessorSupplier<Integer, A
                 });
             }
 
-            /*
-                Clusters data points by computing distances to cluster centroids
-                and adding the points to the nearest cluster or by creating
-                new clusters for distances above the threshold.
-            */
             @Override
             public void process(Integer key, ArrayList<Double> value) {
-
                this.pointBuffer.put(key, value);
             }
 

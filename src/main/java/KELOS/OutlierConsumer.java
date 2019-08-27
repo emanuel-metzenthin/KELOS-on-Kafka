@@ -10,6 +10,7 @@ import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.common.serialization.IntegerDeserializer;
 
 import java.io.BufferedWriter;
+import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -43,6 +44,18 @@ public class OutlierConsumer {
         KafkaConsumer<Integer, Cluster> consumer = new KafkaConsumer<>(props);
 
         consumer.subscribe(Collections.singletonList(OUTLIERS_TOPIC));
+
+        try {
+            File file = new File("./outliers.csv");
+
+            file.createNewFile();
+
+            if(file.delete()) {
+                file.createNewFile();
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
 
         while (true){
             try {

@@ -12,10 +12,10 @@ import org.apache.kafka.streams.state.KeyValueStore;
 import java.util.ArrayList;
 
 public class DensityEstimationProcessorSupplier implements ProcessorSupplier<Integer, Cluster> {
+
     /*
         Estimates the density for each Cluster.
      */
-
     @Override
     public Processor<Integer, Cluster> get() {
         return new Processor<Integer, Cluster>() {
@@ -31,18 +31,20 @@ public class DensityEstimationProcessorSupplier implements ProcessorSupplier<Int
             }
 
             @Override
-            public void process(Integer key, Cluster value) {
-
-                if (Cluster.isEndOfWindowToken(value)){
+            public void process(Integer key, Cluster cluster) {
+                // At end of window
+                if (Cluster.isEndOfWindowToken(cluster)){
                     long start = System.currentTimeMillis();
+
                     for(KeyValueIterator<Integer, Cluster> it = this.clusters.all(); it.hasNext();) {
                         KeyValue<Integer, Cluster> kv = it.next();
-                        Integer key2 = kv.key;
-                        Cluster cluster = kv.value;
+                        Integer storeKey = kv.key;
+                        Cluster storeCluster = kv.value;
 
+                        // Store nearest neighbor clusters
                         ArrayList<Cluster> kNNs = new ArrayList<>();
 
-                        for(int i : cluster.knnIds) {
+                        for(int i : storeCluster.knnIds) {
                             if (this.clusters.get(i) != null) {
                                 kNNs.add(this.clusters.get(i));
                             }
@@ -55,6 +57,8 @@ public class DensityEstimationProcessorSupplier implements ProcessorSupplier<Int
                         int k = kNNs.size();
                         int d = kNNs.get(0).centroid.length;
 
+                        // Compute the weight for each neighbor cluster
+
                         ArrayList<Double> clusterWeights = new ArrayList<>();
 
                         int totalSize = kNNs.stream().mapToInt(cl -> cl.size).sum();
@@ -63,6 +67,7 @@ public class DensityEstimationProcessorSupplier implements ProcessorSupplier<Int
                             clusterWeights.add((double) c.size / totalSize);
                         }
 
+                        // Compute the means per dimension
                         ArrayList<Double> dimensionMeans = new ArrayList<>();
 
                         for(int i = 0; i < d; i++) {
@@ -77,6 +82,7 @@ public class DensityEstimationProcessorSupplier implements ProcessorSupplier<Int
                             dimensionMeans.add(mean);
                         }
 
+                        // Compute the standard deviations per dimension
                         ArrayList<Double> dimensionStdDevs = new ArrayList<>();
 
                         for(int i = 0; i < d; i++) {
@@ -92,6 +98,7 @@ public class DensityEstimationProcessorSupplier implements ProcessorSupplier<Int
                             dimensionStdDevs.add(stdDev);
                         }
 
+                        // Compute the bandwidths per dimension
                         ArrayList<Double> dimensionBandwidths = new ArrayList<>();
 
                         for(int i = 0; i < d; i++) {
@@ -99,9 +106,11 @@ public class DensityEstimationProcessorSupplier implements ProcessorSupplier<Int
                             dimensionBandwidths.add(bandwidth);
                         }
 
-                        cluster.density = 0;
-                        cluster.minDensityBound = 0;
-                        cluster.maxDensityBound = 0;
+                        // === Compute density ===
+
+                        storeCluster.density = 0;
+                        storeCluster.minDensityBound = 0;
+                        storeCluster.maxDensityBound = 0;
 
                         for(int i = 0; i < k; i++) {
                             double productKernel = 1;
@@ -109,29 +118,30 @@ public class DensityEstimationProcessorSupplier implements ProcessorSupplier<Int
                             double maxProductKernel = 1;
 
                             for(int j = 0; j < d; j++) {
-                                double difference = Math.abs(cluster.centroid[j] - kNNs.get(i).centroid[j]);
-                                double distToMin = cluster.centroid[j] - cluster.minimums[j];
-                                double distToMax = cluster.maximums[j] - cluster.centroid[j];
+                                double difference = Math.abs(storeCluster.centroid[j] - kNNs.get(i).centroid[j]);
+                                double distToMin = storeCluster.centroid[j] - storeCluster.minimums[j];
+                                double distToMax = storeCluster.maximums[j] - storeCluster.centroid[j];
                                 double radius = Math.max(distToMin, distToMax);
                                 productKernel *= new GaussianKernel(dimensionBandwidths.get(j)).computeDensity(difference);
                                 minProductKernel *= new GaussianKernel(dimensionBandwidths.get(j)).computeDensity(difference + radius);
                                 maxProductKernel *= new GaussianKernel(dimensionBandwidths.get(j)).computeDensity(Math.max(difference - radius, 0));
                             }
 
-                            cluster.density += productKernel * clusterWeights.get(i);
-                            cluster.minDensityBound += minProductKernel * clusterWeights.get(i);
-                            cluster.maxDensityBound += maxProductKernel * clusterWeights.get(i);
+                            storeCluster.density += productKernel * clusterWeights.get(i);
+                            storeCluster.minDensityBound += minProductKernel * clusterWeights.get(i);
+                            storeCluster.maxDensityBound += maxProductKernel * clusterWeights.get(i);
                         }
 
-                        this.context.forward(key2, cluster);
+                        this.context.forward(storeKey, storeCluster);
                     }
 
-                    this.context.forward(key, value);
+                    // Forward EndOfWindowToken
+                    this.context.forward(key, cluster);
 
                     for(KeyValueIterator<Integer, Cluster> i = this.clusters.all(); i.hasNext();) {
-                        KeyValue<Integer, Cluster> cluster = i.next();
+                        KeyValue<Integer, Cluster> storeCluster = i.next();
 
-                        this.clusters.delete(cluster.key);
+                        this.clusters.delete(storeCluster.key);
                     }
 
                     if(benchmarkTime == 0) {
@@ -142,10 +152,9 @@ public class DensityEstimationProcessorSupplier implements ProcessorSupplier<Int
 
                     benchmarks++;
                 }
-                else {
 
-                }
-                this.clusters.put(key, value);
+                // If not end of window
+                this.clusters.put(key, cluster);
             }
 
             @Override

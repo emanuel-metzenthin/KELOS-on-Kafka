@@ -8,6 +8,9 @@ import org.apache.kafka.streams.state.KeyValueStore;
 
 public class ClusterRegistrationProcessorSupplier implements ProcessorSupplier<Integer, Cluster> {
 
+    /*
+        Stores clusters in global cluster store
+     */
     @Override
     public Processor<Integer, Cluster> get() {
         return new Processor<Integer, Cluster>() {

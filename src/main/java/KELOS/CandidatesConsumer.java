@@ -13,6 +13,7 @@ import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.common.serialization.IntegerDeserializer;
 
 import java.io.BufferedWriter;
+import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -48,6 +49,18 @@ public class CandidatesConsumer {
         KafkaConsumer<Integer, Pair<Cluster, Boolean>> consumer = new KafkaConsumer<>(props);
 
         consumer.subscribe(Collections.singletonList(CANDIDATES_TOPIC));
+
+        try {
+            File file = new File("./candidates.csv");
+
+            file.createNewFile();
+
+            if(file.delete()) {
+                file.createNewFile();
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
 
         while (true){
             try {

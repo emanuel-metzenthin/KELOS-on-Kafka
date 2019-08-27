@@ -21,14 +21,14 @@ public class Cluster {
     public double minDensityBound;
     public double maxDensityBound;
 
-    public Cluster(int column_count, int k){
+    public Cluster(int dimensions, int K){
         this.size = 0;
-        this.centroid = new double[column_count];
-        this.linearSums = new double[column_count];
-        this.minimums = new double[column_count];
-        this.maximums = new double[column_count];
-        this.knnIds = new int[k];
-        this.oldLinearSums = new double[column_count];
+        this.centroid = new double[dimensions];
+        this.linearSums = new double[dimensions];
+        this.minimums = new double[dimensions];
+        this.maximums = new double[dimensions];
+        this.knnIds = new int[K];
+        this.oldLinearSums = new double[dimensions];
         this.oldSize = 0;
 
         density = 0;
@@ -50,7 +50,7 @@ public class Cluster {
         maxDensityBound = 0;
     }
 
-    public Cluster(ArrayList<Double> record, int k){
+    public Cluster(ArrayList<Double> record, int K){
         double[] recordArray = record.stream().mapToDouble(Double::doubleValue).toArray();
 
         this.centroid = recordArray;
@@ -58,7 +58,7 @@ public class Cluster {
         this.minimums = recordArray;
         this.maximums = recordArray;
         this.size = 1;
-        this.knnIds = new int[k];
+        this.knnIds = new int[K];
         this.oldLinearSums = new double[record.size()];
         this.oldSize = 0;
 
@@ -84,15 +84,14 @@ public class Cluster {
     }
 
     public double distance(ArrayList<Double> record) {
-
-        double sum_of_squares = 0;
+        double sumOfSquares = 0;
 
         for(int i = 0; i < this.centroid.length; i++){
             double difference = record.get(i) - this.centroid[i];
-            sum_of_squares += difference * difference;
+            sumOfSquares += difference * difference;
         }
 
-        return Math.sqrt(sum_of_squares);
+        return Math.sqrt(sumOfSquares);
     }
 
     public double distance(Cluster cluster) {
@@ -100,14 +99,14 @@ public class Cluster {
             return 0;
         }
 
-        double sum_of_squares = 0;
+        double sumOfSquares = 0;
 
         for(int i = 0; i < this.centroid.length; i++){
             double difference = cluster.centroid[i] - this.centroid[i];
-            sum_of_squares += difference * difference;
+            sumOfSquares += difference * difference;
         }
 
-        return Math.sqrt(sum_of_squares);
+        return Math.sqrt(sumOfSquares);
     }
 
     public void addRecord(ArrayList<Double> record){
@@ -122,7 +121,6 @@ public class Cluster {
     }
 
     public void merge(Cluster otherCluster){
-        // We need to catch this, otherwise the minima / maxima get messed up
         if (this.size == 0){
             this.size = otherCluster.size;
 
@@ -142,6 +140,14 @@ public class Cluster {
                 this.minimums[i] = Math.min(this.minimums[i], otherCluster.minimums[i]);
                 this.maximums[i] = Math.max(this.maximums[i], otherCluster.maximums[i]);
             }
+        }
+    }
+
+    public void updateMetrics() {
+        this.size -= this.oldSize;
+
+        for(int i = 0; i < this.oldLinearSums.length; i++) {
+            this.linearSums[i] -= this.oldLinearSums[i];
         }
     }
 
@@ -181,14 +187,6 @@ public class Cluster {
         public int compare(Integer index1, Integer index2)
         {
             return this.hashmap.get(index1).compareTo(this.hashmap.get(index2));
-        }
-    }
-
-    public void updateMetrics() {
-        this.size -= this.oldSize;
-
-        for(int i = 0; i < this.oldLinearSums.length; i++) {
-            this.linearSums[i] -= this.oldLinearSums[i];
         }
     }
 }

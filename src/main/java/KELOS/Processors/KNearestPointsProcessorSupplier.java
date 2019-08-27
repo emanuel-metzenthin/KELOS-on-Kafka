@@ -17,19 +17,20 @@ import java.util.Date;
 import java.util.HashSet;
 import java.util.TimeZone;
 
-/*
-    Finds the K nearest neighbors for each candidate point, as well as for the K nearest neighbors of the candidates.
-    The latter is necessary because we also need to compute the density for the neighbors to calculate the relative density
-    (KLOME-Score) for a candidate.
- */
 public class KNearestPointsProcessorSupplier implements ProcessorSupplier<Integer, Pair<Cluster, Boolean>> {
 
+    /*
+        Finds the K nearest neighbors for each candidate point, as well as for the K nearest neighbors of the candidates.
+        The latter is necessary because we also need to compute the density for the neighbors to calculate the relative density
+        (KLOME-Score) for a candidate.
+    */
     @Override
     public Processor<Integer, Pair<Cluster, Boolean>> get() {
         return new Processor<Integer, Pair<Cluster, Boolean>>() {
             private ProcessorContext context;
             private KeyValueStore<Integer, Cluster> pointClusters;
             private KeyValueStore<Integer, Cluster> candidatePoints;
+
             private long benchmarkTime = 0;
             private int benchmarks = 0;
 
@@ -42,23 +43,16 @@ public class KNearestPointsProcessorSupplier implements ProcessorSupplier<Intege
 
             @Override
             public void process(Integer key, Pair<Cluster, Boolean> value) {
-
                 if (Cluster.isEndOfWindowToken(value.getLeft())){
                     long start = System.currentTimeMillis();
-
-                    Date date = new Date(this.context.timestamp());
-                    DateFormat formatter = new SimpleDateFormat("HH:mm:ss.SSS");
-                    formatter.setTimeZone(TimeZone.getTimeZone("Europe/Berlin"));
-                    String dateFormatted = formatter.format(date);
-                    String systime = LocalDateTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss.SSS"));
-
-                    System.out.println("New KNN Points window: " + dateFormatted + " System time : " + systime);
 
                     HashSet<Integer> candidates = new HashSet<>();
                     HashSet<Integer> candidateKNNs = new HashSet<>();
                     HashSet<Integer> knnKNNs = new HashSet<>();
+
                     boolean first = true;
 
+                    // Compute KNNs for candidate points
                     for (KeyValueIterator<Integer, Cluster> it = this.candidatePoints.all(); it.hasNext();) {
                         KeyValue<Integer, Cluster> kv = it.next();
 
@@ -69,11 +63,13 @@ public class KNearestPointsProcessorSupplier implements ProcessorSupplier<Intege
                         if(!it.hasNext()) {
                             System.out.println("KNN points last " + kv.key);
                         }
+
                         Cluster cluster = kv.value;
 
                         cluster.calculateKNearestNeighbors(this.pointClusters.all(), kv.key);
 
                         candidates.add(kv.key);
+                        // Update cluster with neighbors
                         this.pointClusters.put(kv.key, cluster);
 
                         Pair<Cluster, Integer> pair = Pair.of(cluster, 0);
