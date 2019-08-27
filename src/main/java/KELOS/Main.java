@@ -102,7 +102,7 @@ public class Main {
                 "DensityEstimator");
         builder.addSink("ClusterDensitySink", DENSITIES_TOPIC, new IntegerSerializer(), new ClusterSerializer(), "DensityEstimator");
 
-        builder.addProcessor("PruningProcessor", new PruningProcessorSupplier("ClustersWithDensities", "TopNClusters"), "DensityEstimator");
+        builder.addProcessor("PruningProcessor", new PruningProcessorSupplier(), "DensityEstimator");
         builder.addProcessor("FilterProcessor", new FilterProcessorSupplier(), "PruningProcessor");
 
         builder.addStateStore(
