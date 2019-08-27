@@ -182,13 +182,6 @@ public class Main {
 
         builder.addStateStore(
                 Stores.keyValueStoreBuilder(
-                        Stores.inMemoryKeyValueStore("PointDensityCandidates"),
-                        Serdes.Integer(),
-                        new ClusterSerde()),
-                "PointDensityEstimatorProcessor");
-
-        builder.addStateStore(
-                Stores.keyValueStoreBuilder(
                         Stores.inMemoryKeyValueStore("PointDensityBuffer"),
                         Serdes.Integer(),
                         new PairSerde()),
