@@ -146,14 +146,7 @@ public class Main {
                         Serdes.Integer(),
                         new ClusterSerde()),
                 "KNNPointsProcessor");
-
-        builder.addStateStore(
-                Stores.keyValueStoreBuilder(
-                        Stores.inMemoryKeyValueStore("PointDensityCandidates"),
-                        Serdes.Integer(),
-                        new ClusterSerde()),
-                "PointDensityEstimatorProcessor");
-
+        
         builder.addStateStore(
                 Stores.keyValueStoreBuilder(
                         Stores.inMemoryKeyValueStore("PointDensityBuffer"),
