@@ -59,8 +59,7 @@ public class CandidatesConsumer {
                 CSVPrinter csvPrinter = new CSVPrinter(writer, CSVFormat.DEFAULT);
 
                 for (ConsumerRecord<Integer,Pair<Cluster, Boolean>> record : records) {
-
-                    if(record.value().getRight()) {
+                    if(record.value().getRight() && record.key() != -1) {
                         ArrayList<String> rec = new ArrayList<>();
                         rec.add(record.key() + "");
 
