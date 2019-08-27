@@ -4,9 +4,11 @@ import KELOS.Cluster;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.commons.lang3.tuple.Triple;
 import org.apache.kafka.streams.KeyValue;
+import org.apache.kafka.streams.kstream.Windowed;
 import org.apache.kafka.streams.processor.*;
 import org.apache.kafka.streams.state.KeyValueIterator;
 import org.apache.kafka.streams.state.KeyValueStore;
+import org.apache.kafka.streams.state.WindowStore;
 
 
 import java.text.DateFormat;
@@ -27,7 +29,7 @@ public class FilterProcessorSupplier implements ProcessorSupplier<Integer, Clust
         return new Processor<Integer, Cluster>() {
             private ProcessorContext context;
             private KeyValueStore<Integer, Cluster> topNClusters;
-            private KeyValueStore<Integer, Triple<Integer, ArrayList<Double>, Long>> windowPoints;
+            private WindowStore<Integer, Triple<Integer, ArrayList<Double>, Long>> windowPoints;
             private long benchmarkTime = 0;
             private int benchmarks = 0;
 
@@ -35,7 +37,7 @@ public class FilterProcessorSupplier implements ProcessorSupplier<Integer, Clust
             public void init(ProcessorContext context) {
                 this.context = context;
                 this.topNClusters = (KeyValueStore<Integer, Cluster>) context.getStateStore("TopNClusters");
-                this.windowPoints = (KeyValueStore<Integer, Triple<Integer, ArrayList<Double>, Long>>) context.getStateStore("ClusterAssignments");
+                this.windowPoints = (WindowStore<Integer, Triple<Integer, ArrayList<Double>, Long>>) context.getStateStore("ClusterAssignments");
 
             }
 
@@ -57,16 +59,18 @@ public class FilterProcessorSupplier implements ProcessorSupplier<Integer, Clust
                     System.out.println("New FILTER window: " + dateFormatted + " System time : " + systime);
 
                     boolean first = true;
-                    for(KeyValueIterator<Integer,Triple<Integer, ArrayList<Double>, Long>> i = this.windowPoints.all(); i.hasNext();) {
-                        KeyValue<Integer, Triple<Integer, ArrayList<Double>, Long>> point = i.next();
+                    long from = this.context.timestamp() - (long) (((double) AGGREGATION_WINDOWS - 0.5) * WINDOW_TIME.toMillis());
+                    long to = this.context.timestamp();
+                    for(KeyValueIterator<Windowed<Integer>,Triple<Integer, ArrayList<Double>, Long>> i = this.windowPoints.fetchAll(from, to); i.hasNext();) {
+                        KeyValue<Windowed<Integer>, Triple<Integer, ArrayList<Double>, Long>> point = i.next();
 
                         if (point.value.getRight() <= this.context.timestamp()){
                             if(first) {
-                                System.out.println("Filter points from " + point.key);
+                                System.out.println("Filter points from " + point.key.key());
                                 first = false;
                             }
                             if(!i.hasNext()) {
-                                System.out.println("Filter points last " + point.key);
+                                System.out.println("Filter points last " + point.key.key());
                             }
 
                             Cluster cluster = this.topNClusters.get(point.value.getLeft());
@@ -76,14 +80,15 @@ public class FilterProcessorSupplier implements ProcessorSupplier<Integer, Clust
 
                             if (cluster != null){
                                 Pair<Cluster, Boolean> pair = Pair.of(singlePointCluster, true);
-                                this.context.forward(point.key, pair);
+                                this.context.forward(point.key.key(), pair);
                             }
                             else {
                                 Pair<Cluster, Boolean> pair = Pair.of(singlePointCluster, false);
-                                this.context.forward(point.key, pair);
+                                this.context.forward(point.key.key(), pair);
                             }
 
-                            this.windowPoints.delete(point.key);
+
+                            // this.windowPoints.delete(point.key);
                         }
                     }
 

@@ -6,6 +6,7 @@ import org.apache.kafka.streams.KeyValue;
 import org.apache.kafka.streams.processor.*;
 import org.apache.kafka.streams.state.KeyValueIterator;
 import org.apache.kafka.streams.state.KeyValueStore;
+import org.apache.kafka.streams.state.WindowStore;
 
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
@@ -29,7 +30,7 @@ public class ClusteringProcessorSupplier implements ProcessorSupplier<Integer, A
             private ProcessorContext context;
             private KeyValueStore<Integer, ArrayList<Double>> pointBuffer;
             private KeyValueStore<Integer, Cluster> tempClusters;
-            private KeyValueStore<Integer, Triple<Integer, ArrayList<Double>, Long>> clusterAssignments;
+            private WindowStore<Integer, Triple<Integer, ArrayList<Double>, Long>> clusterAssignments;
             private long benchmarkTime = 0;
             private int benchmarks = 0;
 
@@ -75,7 +76,7 @@ public class ClusteringProcessorSupplier implements ProcessorSupplier<Integer, A
                 this.context = context;
                 this.pointBuffer = (KeyValueStore<Integer, ArrayList<Double>>) context.getStateStore("ClusteringBuffer");
                 this.tempClusters = (KeyValueStore<Integer, Cluster>) context.getStateStore("TempClusters");
-                this.clusterAssignments = (KeyValueStore<Integer, Triple<Integer, ArrayList<Double>, Long>>) context.getStateStore("ClusterAssignments");
+                this.clusterAssignments = (WindowStore<Integer, Triple<Integer, ArrayList<Double>, Long>>) context.getStateStore("ClusterAssignments");
 
                 KeyValueStore<Integer, Cluster> clusters = (KeyValueStore<Integer, Cluster>) context.getStateStore("Clusters");
 
