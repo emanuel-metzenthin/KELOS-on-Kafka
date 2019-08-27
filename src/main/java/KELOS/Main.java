@@ -24,7 +24,7 @@ public class Main {
     public static final String CANDIDATES_TOPIC = "candidates";
     public static final String PRUNED_CLUSTERS_TOPIC = "pruned_clusters";
     public static final String OUTLIERS_TOPIC = "outliers";
-    public static final int AGGREGATION_WINDOWS = 1;
+    public static final int AGGREGATION_WINDOWS = 2;
     public static final double DISTANCE_THRESHOLD = 0.5;
     public static final Duration WINDOW_TIME = Duration.ofSeconds(10);
     public static final int K = 40;
@@ -85,7 +85,6 @@ public class Main {
 
         builder.addProcessor("KNNProcessor", new KNearestClusterProcessorSupplier(), "AggregationProcessor");
 
-        Duration retention =  Duration.ofSeconds(AGGREGATION_WINDOWS * WINDOW_TIME.getSeconds());
         builder.addStateStore(
                 Stores.keyValueStoreBuilder(
                         Stores.inMemoryKeyValueStore("ClusterBuffer"),
@@ -93,7 +92,7 @@ public class Main {
                         new ClusterSerde()),
                 "KNNProcessor");
 
-        builder.addProcessor("DensityEstimator", new DensityEstimationProcessorSupplier("ClusterDensityBuffer"), "KNNProcessor");
+        builder.addProcessor("DensityEstimator", new DensityEstimationProcessorSupplier(), "KNNProcessor");
         builder.addStateStore(
                 Stores.keyValueStoreBuilder(
                         Stores.inMemoryKeyValueStore("ClusterDensityBuffer"),
@@ -111,9 +110,11 @@ public class Main {
                         Serdes.Integer(),
                         new ClusterSerde()),
                 "PruningProcessor");
+
+        Duration retention =  Duration.ofSeconds(AGGREGATION_WINDOWS * WINDOW_TIME.getSeconds());
         builder.addStateStore(
-                Stores.keyValueStoreBuilder(
-                        Stores.inMemoryKeyValueStore("ClusterAssignments"),
+                Stores.windowStoreBuilder(
+                        Stores.persistentWindowStore("ClusterAssignments", retention, retention, false),
                         Serdes.Integer(),
                         new TripleSerde()),
                 "ClusteringProcessor", "FilterProcessor");
@@ -128,7 +129,7 @@ public class Main {
 
         builder.addProcessor("KNNPointsProcessor", new KNearestPointsProcessorSupplier(), "FilterProcessor");
 
-        builder.addProcessor("PointDensityEstimatorProcessor", new PointDensityEstimationProcessorSupplier("PointDensityBuffer"), "KNNPointsProcessor");
+        builder.addProcessor("PointDensityEstimatorProcessor", new PointDensityEstimationProcessorSupplier(), "KNNPointsProcessor");
 
         builder.addProcessor("PointPruningProcessor", new PointPruningProcessorSupplier(), "PointDensityEstimatorProcessor");
 
