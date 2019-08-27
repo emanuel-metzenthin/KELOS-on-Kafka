@@ -55,7 +55,7 @@ public class ClusteringProcessorSupplier implements ProcessorSupplier<Integer, A
                     highestCluster = Math.max(highestCluster, c.key);
                 }
 
-                if (minDist < DISTANCE_THRESHOLD) {
+                if (minDist < CLUSTERING_DISTANCE_THRESHOLD) {
                     Triple<Integer, ArrayList<Double>, Long> triple = Triple.of(clusterIdx, value, this.context.timestamp());
                     cluster.addRecord(value);
                     this.tempClusters.put(clusterIdx, cluster);

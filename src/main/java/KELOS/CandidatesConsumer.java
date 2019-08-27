@@ -26,7 +26,6 @@ import java.util.Collections;
 import java.util.Properties;
 
 import static KELOS.Main.CANDIDATES_TOPIC;
-import static KELOS.Main.DENSITIES_TOPIC;
 
 public class CandidatesConsumer {
 

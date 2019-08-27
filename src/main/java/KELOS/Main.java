@@ -15,19 +15,24 @@ import java.util.Properties;
 import java.util.concurrent.CountDownLatch;
 
 public class Main {
+    // APP CONFIG
     static final String APP_ID = "KELOS";
     static final String SERVER_CONFIGS = "localhost:9092";
 
+    // TOPIC NAMES
     public static final String CLUSTER_ASSIGNMENT_TOPIC = "cluster-assignments";
     public static final String CLUSTER_TOPIC = "clusters";
     public static final String DENSITIES_TOPIC = "densities";
     public static final String CANDIDATES_TOPIC = "candidates";
-    public static final String PRUNED_CLUSTERS_TOPIC = "pruned_clusters";
     public static final String OUTLIERS_TOPIC = "outliers";
+
+    // ALGORITHM CONFIGURATION
     public static final int AGGREGATION_WINDOWS = 2;
-    public static final double DISTANCE_THRESHOLD = 0.5;
     public static final Duration WINDOW_TIME = Duration.ofSeconds(10);
+    public static final double CLUSTERING_DISTANCE_THRESHOLD = 0.5;
+    // K-NN neighbors
     public static final int K = 40;
+    // Top-N outlier number
     public static final int N = 10;
 
     public static void main(final String[] args) {
@@ -38,27 +43,33 @@ public class Main {
         props.put(StreamsConfig.DEFAULT_KEY_SERDE_CLASS_CONFIG, Serdes.Integer().getClass());
         props.put(StreamsConfig.DEFAULT_VALUE_SERDE_CLASS_CONFIG, ArrayListSerde.class.getName());
 
+        // ======== TOPOLOGY ========
+
         final Topology builder = new Topology();
 
         builder.addSource("DataSource", InputProducer.TOPIC);
 
-        // Add global cluster store
+        // Global cluster store
         builder.addGlobalStore(
                 Stores.keyValueStoreBuilder(
                         Stores.inMemoryKeyValueStore("Clusters"),
                         Serdes.Integer(),
                         new ClusterSerde()
                 ).withLoggingDisabled(),
-                "GlobalSource",
+                "GlobalClustersSource",
                 new IntegerDeserializer(),
                 new ClusterDeserializer(),
                 CLUSTER_TOPIC,
                 "ClusterRegistration",
                 new ClusterRegistrationProcessorSupplier());
 
+        // ++++++++ DATA ABSTRACTOR ++++++++
+
+        // Clustering Processor
+
         builder.addProcessor("ClusteringProcessor", new ClusteringProcessorSupplier(), "DataSource");
+
         builder.addSink("ClusterAssignmentSink", CLUSTER_ASSIGNMENT_TOPIC, new IntegerSerializer(), new TripleSerializer(), "ClusteringProcessor");
-        builder.addProcessor("AggregationProcessor", new AggregationProcessorSupplier(), "ClusteringProcessor");
 
         builder.addStateStore(
                 Stores.keyValueStoreBuilder(
@@ -74,6 +85,10 @@ public class Main {
                         new ArrayListSerde()),
                 "ClusteringProcessor");
 
+        // Aggregation Processor
+
+        builder.addProcessor("AggregationProcessor", new AggregationProcessorSupplier(), "ClusteringProcessor");
+
         builder.addStateStore(
                 Stores.keyValueStoreBuilder(
                         Stores.inMemoryKeyValueStore("ClusterStates"),
@@ -83,26 +98,34 @@ public class Main {
 
         builder.addSink("ClusterSink", CLUSTER_TOPIC, new IntegerSerializer(), new ClusterSerializer(), "AggregationProcessor");
 
-        builder.addProcessor("KNNProcessor", new KNearestClusterProcessorSupplier(), "AggregationProcessor");
+        // ++++++++ DENSITY ESTIMATOR ++++++++
+
+        // KNN Cluster Processor
+
+        builder.addProcessor("KNearestClusterProcessor", new KNearestClusterProcessorSupplier(), "AggregationProcessor");
 
         builder.addStateStore(
                 Stores.keyValueStoreBuilder(
                         Stores.inMemoryKeyValueStore("ClusterBuffer"),
                         Serdes.Integer(),
                         new ClusterSerde()),
-                "KNNProcessor");
+                "KNearestClusterProcessor");
 
-        builder.addProcessor("DensityEstimator", new DensityEstimationProcessorSupplier(), "KNNProcessor");
+        // Density Estimation Processor
+
+        builder.addProcessor("DensityEstimationProcessor", new DensityEstimationProcessorSupplier(), "KNearestClusterProcessor");
         builder.addStateStore(
                 Stores.keyValueStoreBuilder(
                         Stores.inMemoryKeyValueStore("ClusterDensityBuffer"),
                         Serdes.Integer(),
                         new ClusterSerde()),
-                "DensityEstimator");
-        builder.addSink("ClusterDensitySink", DENSITIES_TOPIC, new IntegerSerializer(), new ClusterSerializer(), "DensityEstimator");
+                "DensityEstimationProcessor");
 
-        builder.addProcessor("PruningProcessor", new PruningProcessorSupplier(), "DensityEstimator");
-        builder.addProcessor("FilterProcessor", new FilterProcessorSupplier(), "PruningProcessor");
+        builder.addSink("ClusterDensitySink", DENSITIES_TOPIC, new IntegerSerializer(), new ClusterSerializer(), "DensityEstimationProcessor");
+
+        // Pruning Processor
+
+        builder.addProcessor("PruningProcessor", new PruningProcessorSupplier(), "DensityEstimationProcessor");
 
         builder.addStateStore(
                 Stores.keyValueStoreBuilder(
@@ -111,6 +134,11 @@ public class Main {
                         new ClusterSerde()),
                 "PruningProcessor");
 
+        // Filter Processor
+
+        builder.addProcessor("FilterProcessor", new FilterProcessorSupplier(), "PruningProcessor");
+
+        // Window store that keeps all points of the current window
         Duration retention =  Duration.ofSeconds(AGGREGATION_WINDOWS * WINDOW_TIME.getSeconds());
         builder.addStateStore(
                 Stores.windowStoreBuilder(
@@ -118,6 +146,7 @@ public class Main {
                         Serdes.Integer(),
                         new TripleSerde()),
                 "ClusteringProcessor", "FilterProcessor");
+
         builder.addStateStore(
                 Stores.keyValueStoreBuilder(
                         Stores.inMemoryKeyValueStore("TopNClusters"),
@@ -127,25 +156,29 @@ public class Main {
 
         builder.addSink("OutlierCandidatesSink", CANDIDATES_TOPIC, new IntegerSerializer(), new IntBoolPairSerializer(), "FilterProcessor");
 
-        builder.addProcessor("KNNPointsProcessor", new KNearestPointsProcessorSupplier(), "FilterProcessor");
+        // ++++++++ OUTLIER DETECTOR ++++++++
 
-        builder.addProcessor("PointDensityEstimatorProcessor", new PointDensityEstimationProcessorSupplier(), "KNNPointsProcessor");
+        // K-Nearest Points Processor
 
-        builder.addProcessor("PointPruningProcessor", new PointPruningProcessorSupplier(), "PointDensityEstimatorProcessor");
+        builder.addProcessor("KNearestPointsProcessor", new KNearestPointsProcessorSupplier(), "FilterProcessor");
 
         builder.addStateStore(
                 Stores.keyValueStoreBuilder(
                         Stores.inMemoryKeyValueStore("PointBuffer"),
                         Serdes.Integer(),
                         new ClusterSerde()),
-                "KNNPointsProcessor");
+                "KNearestPointsProcessor");
 
         builder.addStateStore(
                 Stores.keyValueStoreBuilder(
                         Stores.inMemoryKeyValueStore("CandidatePoints"),
                         Serdes.Integer(),
                         new ClusterSerde()),
-                "KNNPointsProcessor");
+                "KNearestPointsProcessor");
+
+        // Point Density Estimation Processor
+
+        builder.addProcessor("PointDensityEstimatorProcessor", new PointDensityEstimationProcessorSupplier(), "KNearestPointsProcessor");
 
         builder.addStateStore(
                 Stores.keyValueStoreBuilder(
@@ -160,6 +193,10 @@ public class Main {
                         Serdes.Integer(),
                         new PairSerde()),
                 "PointDensityEstimatorProcessor");
+
+        // Point Pruning Processor
+
+        builder.addProcessor("PointPruningProcessor", new PointPruningProcessorSupplier(), "PointDensityEstimatorProcessor");
 
         builder.addStateStore(
                 Stores.keyValueStoreBuilder(
