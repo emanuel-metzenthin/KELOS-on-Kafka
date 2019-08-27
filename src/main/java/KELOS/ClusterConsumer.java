@@ -48,11 +48,13 @@ public class ClusterConsumer {
                 ConsumerRecords<Integer, Cluster> records = consumer.poll(Duration.ofSeconds(1));
 
                 for (ConsumerRecord<Integer, Cluster> record : records) {
-                    String line = "" + record.key();
-                    for(double d : record.value().centroid) {
-                        line += "," + d;
+                    if(record.key() != -1) {
+                        String line = "" + record.key();
+                        for (double d : record.value().centroid) {
+                            line += "," + d;
+                        }
+                        writer.append(line + "\n");
                     }
-                    writer.append(line + "\n");
                 }
                 writer.close();
             } catch (IOException e) {
