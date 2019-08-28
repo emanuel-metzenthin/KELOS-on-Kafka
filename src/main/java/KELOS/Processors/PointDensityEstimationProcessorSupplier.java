@@ -79,7 +79,7 @@ public class PointDensityEstimationProcessorSupplier implements ProcessorSupplie
                         int k = kNNs.size();
                         int d = kNNs.get(0).centroid.length;
 
-                        double pointWeight = 1 / k;
+                        double pointWeight = 1.0 / k;
 
                         ArrayList<Double> dimensionMeans = new ArrayList<>();
 
@@ -102,10 +102,12 @@ public class PointDensityEstimationProcessorSupplier implements ProcessorSupplie
 
                             for(int m = 0; m < k; m++) {
                                 double diffToMean = kNNs.get(m).centroid[i] - dimensionMeans.get(i);
+                                System.out.println(pointWeight);
                                 stdDev += Math.pow(diffToMean, 2) * pointWeight;
                             }
 
                             stdDev = Math.sqrt(stdDev);
+                            System.out.println(stdDev);
 
                             dimensionStdDevs.add(stdDev);
                         }
