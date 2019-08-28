@@ -28,38 +28,22 @@ public class FilterProcessorSupplier implements ProcessorSupplier<Integer, Clust
             private KeyValueStore<Integer, Cluster> topNClusters;
             private WindowStore<Integer, Triple<Integer, ArrayList<Double>, Long>> windowPoints;
 
-            private long benchmarkTime = 0;
-            private int benchmarks = 0;
-
             @Override
             public void init(ProcessorContext context) {
                 this.context = context;
                 this.topNClusters = (KeyValueStore<Integer, Cluster>) context.getStateStore("TopNClusters");
                 this.windowPoints = (WindowStore<Integer, Triple<Integer, ArrayList<Double>, Long>>) context.getStateStore("ClusterAssignments");
-
             }
 
             @Override
             public void process(Integer key, Cluster value) {
                 if (Cluster.isEndOfWindowToken(value)){
-                    long start = System.currentTimeMillis();
-
-                    boolean first = true;
-
                     // Fetch all points and their cluster assignment in current aggregated window
                     long fromTime = this.context.timestamp() - (long) (((double) AGGREGATION_WINDOWS - 0.5) * WINDOW_TIME.toMillis());
                     long toTime = this.context.timestamp();
 
                     for(KeyValueIterator<Windowed<Integer>, Triple<Integer, ArrayList<Double>, Long>> i = this.windowPoints.fetchAll(fromTime, toTime); i.hasNext();) {
                         KeyValue<Windowed<Integer>, Triple<Integer, ArrayList<Double>, Long>> point = i.next();
-
-                        if(first) {
-                            System.out.println("Filter points from " + point.key.key());
-                            first = false;
-                        }
-                        if(!i.hasNext()) {
-                            System.out.println("Filter points last " + point.key.key());
-                        }
 
                         // Check if the point's cluster is one of the clusters that could contain outliers
                         Cluster cluster = this.topNClusters.get(point.value.getLeft());
@@ -87,16 +71,6 @@ public class FilterProcessorSupplier implements ProcessorSupplier<Integer, Clust
 
                         this.topNClusters.delete(cluster.key);
                     }
-
-                    if(benchmarkTime == 0) {
-                        benchmarkTime = System.currentTimeMillis() - start;
-                    } else {
-                        benchmarkTime = (benchmarks * benchmarkTime + (System.currentTimeMillis() - start)) / (benchmarks + 1);
-                    }
-
-                    benchmarks++;
-
-                    System.out.println("Filter: " + benchmarkTime);
                 }
                 else {
                     this.topNClusters.put(key, value);
