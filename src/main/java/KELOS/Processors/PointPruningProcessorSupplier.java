@@ -105,7 +105,7 @@ public class PointPruningProcessorSupplier implements ProcessorSupplier<Integer,
                         int key2 = t.getLeft();
                         Cluster cluster = this.pointWithDensities.get(key2).getLeft();
                         this.context.forward(key2, cluster);
-                        System.out.println("Outlier found: " + count + " Point: " + key2 + " KLOME: " + t.getRight());
+                        System.out.println("Outlier: " + count + " Punkt: " + key2 + " KLOME: " + t.getRight() + " density: " + cluster.density);
                         count++;
                     }
 

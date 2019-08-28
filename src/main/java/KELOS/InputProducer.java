@@ -44,7 +44,6 @@ public class InputProducer {
             CSVParser parser = CSVParser.parse(csvData, StandardCharsets.UTF_8, CSVFormat.RFC4180);
 
             long timestamp = System.currentTimeMillis();
-            double total_window_time_millis = Main.WINDOW_TIME.toMillis() * Main.AGGREGATION_WINDOWS;
 
             int count = 0;
             for (CSVRecord csvRecord : parser) {
@@ -61,7 +60,9 @@ public class InputProducer {
                     }
                 }
 
-                timestamp += (long) (total_window_time_millis) / elementsPerWindow;
+                if (count % (elementsPerWindow / Main.AGGREGATION_WINDOWS) == 0){
+                    timestamp += Main.WINDOW_TIME.toMillis();
+                }
 
                 producer.send(new ProducerRecord<>(InputProducer.TOPIC, 0, timestamp, count, numberRecord));
                 count++;
