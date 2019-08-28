@@ -36,6 +36,7 @@ public class PointPruningProcessorSupplier implements ProcessorSupplier<Integer,
         return new Processor<Integer, Pair<Cluster, Integer>>() {
             private ProcessorContext context;
             private KeyValueStore<Integer, Pair<Cluster, Integer>> pointWithDensities;
+
             private long benchmarkTime = 0;
             private int benchmarks = 0;
 
@@ -45,22 +46,12 @@ public class PointPruningProcessorSupplier implements ProcessorSupplier<Integer,
                 this.pointWithDensities = (KeyValueStore<Integer, Pair<Cluster, Integer>>) context.getStateStore("PointsWithDensities");
             }
 
-            /*
-
-             */
             @Override
             public void process(Integer key, Pair<Cluster, Integer> value) {
 
                 if (Cluster.isEndOfWindowToken(value.getLeft())){
-                    Date date = new Date(this.context.timestamp());
-                    DateFormat formatter = new SimpleDateFormat("HH:mm:ss.SSS");
-                    formatter.setTimeZone(TimeZone.getTimeZone("Europe/Berlin"));
-                    String dateFormatted = formatter.format(date);
-                    String systime = LocalDateTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss.SSS"));
-
-                    System.out.println("New Outlier window: " + dateFormatted + " System time : " + systime);
-
                     long start = System.currentTimeMillis();
+
                     MinMaxPriorityQueue<Pair<Integer, Double>> queue = MinMaxPriorityQueue
                             .orderedBy(new KlomeComparator())
                             .maximumSize(N)
@@ -71,11 +62,11 @@ public class PointPruningProcessorSupplier implements ProcessorSupplier<Integer,
                     for(KeyValueIterator<Integer, Pair<Cluster, Integer>> i = this.pointWithDensities.all(); i.hasNext();) {
                         KeyValue<Integer, Pair<Cluster, Integer>> point = i.next();
 
-
                         //No KLOME score calculation for non-candidates
-                        if (point.value.getRight() == 1){
+                        if (point.value.getRight() == KNearestPointsProcessorSupplier.CANDIDATE_NEIGHBOR){
                             continue;
                         }
+
                         if(first) {
                             System.out.println("Outlier points from " + point.key);
                             first = false;
@@ -124,14 +115,13 @@ public class PointPruningProcessorSupplier implements ProcessorSupplier<Integer,
                         queue.add(pointWithKlome);
                     }
 
-
                     int count = 1;
-                    // TODO: We eventually need to find a better solution, because the iterator doesn't preserve the order
+
                     for (Pair<Integer, Double> t : queue) {
                         int key2 = t.getLeft();
                         Cluster cluster = this.pointWithDensities.get(key2).getLeft();
                         this.context.forward(key2, cluster);
-                        System.out.println("Outlier: " + count + " Punkt: " + key2 + " KLOME: " + t.getRight());
+                        System.out.println("Outlier found: " + count + " Point: " + key2 + " KLOME: " + t.getRight());
                         count++;
                     }
 

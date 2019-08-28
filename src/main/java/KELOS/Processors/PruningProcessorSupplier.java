@@ -20,12 +20,12 @@ public class PruningProcessorSupplier implements ProcessorSupplier<Integer, Clus
         Calculates the KLOME_low and KLOME_high for each cluster, then prunes clusters that are guaranteed to not
         contain any outliers.
      */
-
     @Override
     public Processor<Integer, Cluster> get() {
         return new Processor<Integer, Cluster>() {
             private ProcessorContext context;
             private KeyValueStore<Integer, Cluster> clusterWithDensities;
+
             private long benchmarkTime = 0;
             private int benchmarks = 0;
 
@@ -41,7 +41,7 @@ public class PruningProcessorSupplier implements ProcessorSupplier<Integer, Clus
                 if (Cluster.isEndOfWindowToken(value)) {
                     long start = System.currentTimeMillis();
 
-                    ArrayList<Triple<Integer, Double, Double>> clusters_with_klome = new ArrayList<>();
+                    ArrayList<Triple<Integer, Double, Double>> clustersWithKlome = new ArrayList<>();
 
                     for (KeyValueIterator<Integer, Cluster> i = this.clusterWithDensities.all(); i.hasNext(); ) {
                         KeyValue<Integer, Cluster> cluster = i.next();
@@ -70,26 +70,30 @@ public class PruningProcessorSupplier implements ProcessorSupplier<Integer, Clus
                         double klomeHigh = (cluster.value.maxDensityBound - knnMean) / knnStddev;
                         Triple<Integer, Double, Double> triple = Triple.of(cluster.key, klomeLow, klomeHigh);
 
-                        clusters_with_klome.add(triple);
+                        clustersWithKlome.add(triple);
                     }
 
-                    int[] before_counts = new int[clusters_with_klome.size()];
+                    // === PRUNING ===
 
-                    for (int i = 0; i < clusters_with_klome.size(); i++) {
-                        Triple<Integer, Double, Double> t1 = clusters_with_klome.get(i);
+                    // Keep track for each cluster of how many points are in clusters with lower KLOME upper bounds
+                    int[] smallerKlomeCounts = new int[clustersWithKlome.size()];
+
+                    for (int i = 0; i < clustersWithKlome.size(); i++) {
+                        Triple<Integer, Double, Double> t1 = clustersWithKlome.get(i);
                         int size = this.clusterWithDensities.get(t1.getLeft()).size;
 
-                        for (int j = 0; j < clusters_with_klome.size(); j++) {
-                            Triple<Integer, Double, Double> t2 = clusters_with_klome.get(j);
+                        for (int j = 0; j < clustersWithKlome.size(); j++) {
+                            Triple<Integer, Double, Double> t2 = clustersWithKlome.get(j);
                             if (t1.getRight() < t2.getMiddle()) {
-                                before_counts[j] += size;
+                                smallerKlomeCounts[j] += size;
                             }
                         }
                     }
 
-                    for (int i = 0; i < before_counts.length; i++) {
-                        if (before_counts[i] < N) {
-                            int cluster = clusters_with_klome.get(i).getLeft();
+                    // Forward only those where less than N points with lower KLOME could be found
+                    for (int i = 0; i < smallerKlomeCounts.length; i++) {
+                        if (smallerKlomeCounts[i] < N) {
+                            int cluster = clustersWithKlome.get(i).getLeft();
 
                             this.context.forward(cluster, this.clusterWithDensities.get(cluster));
                         }
