@@ -26,9 +26,6 @@ public class PruningProcessorSupplier implements ProcessorSupplier<Integer, Clus
             private ProcessorContext context;
             private KeyValueStore<Integer, Cluster> clusterWithDensities;
 
-            private long benchmarkTime = 0;
-            private int benchmarks = 0;
-
             @Override
             public void init(ProcessorContext context) {
                 this.context = context;
@@ -37,10 +34,7 @@ public class PruningProcessorSupplier implements ProcessorSupplier<Integer, Clus
 
             @Override
             public void process(Integer key, Cluster value) {
-
                 if (Cluster.isEndOfWindowToken(value)) {
-                    long start = System.currentTimeMillis();
-
                     ArrayList<Triple<Integer, Double, Double>> clustersWithKlome = new ArrayList<>();
 
                     for (KeyValueIterator<Integer, Cluster> i = this.clusterWithDensities.all(); i.hasNext(); ) {
@@ -108,16 +102,6 @@ public class PruningProcessorSupplier implements ProcessorSupplier<Integer, Clus
                     }
 
                     context.commit();
-
-                    if (benchmarkTime == 0) {
-                        benchmarkTime = System.currentTimeMillis() - start;
-                    } else {
-                        benchmarkTime = (benchmarks * benchmarkTime + (System.currentTimeMillis() - start)) / (benchmarks + 1);
-                    }
-
-                    benchmarks++;
-
-                    System.out.println("Pruning Cluster: " + benchmarkTime);
                 } else {
                     this.clusterWithDensities.put(key, value);
                 }

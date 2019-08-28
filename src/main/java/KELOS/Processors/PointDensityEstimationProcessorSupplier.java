@@ -39,7 +39,6 @@ public class PointDensityEstimationProcessorSupplier implements ProcessorSupplie
 
             @Override
             public void process(Integer key, Pair<Cluster, Integer> value) {
-
                 if (Cluster.isEndOfWindowToken(value.getLeft())){
                     for(KeyValueIterator<Integer, Pair<Cluster, Integer>> it = this.windowPoints.all(); it.hasNext();) {
                         KeyValue<Integer, Pair<Cluster, Integer>> kv = it.next();

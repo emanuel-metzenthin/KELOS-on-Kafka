@@ -37,9 +37,6 @@ public class PointPruningProcessorSupplier implements ProcessorSupplier<Integer,
             private ProcessorContext context;
             private KeyValueStore<Integer, Pair<Cluster, Integer>> pointWithDensities;
 
-            private long benchmarkTime = 0;
-            private int benchmarks = 0;
-
             @Override
             public void init(ProcessorContext context) {
                 this.context = context;
@@ -48,10 +45,7 @@ public class PointPruningProcessorSupplier implements ProcessorSupplier<Integer,
 
             @Override
             public void process(Integer key, Pair<Cluster, Integer> value) {
-
                 if (Cluster.isEndOfWindowToken(value.getLeft())){
-                    long start = System.currentTimeMillis();
-
                     MinMaxPriorityQueue<Pair<Integer, Double>> queue = MinMaxPriorityQueue
                             .orderedBy(new KlomeComparator())
                             .maximumSize(N)
@@ -122,16 +116,6 @@ public class PointPruningProcessorSupplier implements ProcessorSupplier<Integer,
 
                         this.pointWithDensities.delete(cluster.key);
                     }
-
-                    if(benchmarkTime == 0) {
-                        benchmarkTime = System.currentTimeMillis() - start;
-                    } else {
-                        benchmarkTime = (benchmarks * benchmarkTime + (System.currentTimeMillis() - start)) / (benchmarks + 1);
-                    }
-
-                    benchmarks++;
-
-                    System.out.println("Prune Point: " + benchmarkTime);
                 }
                 else {
                     this.pointWithDensities.put(key, value);

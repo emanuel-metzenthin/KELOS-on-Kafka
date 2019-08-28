@@ -19,9 +19,6 @@ public class KNearestClusterProcessorSupplier implements ProcessorSupplier<Integ
             private ProcessorContext context;
             private KeyValueStore<Integer, Cluster> clusters;
 
-            private long benchmarkTime = 0;
-            private int benchmarks = 0;
-
             @Override
             public void init(ProcessorContext context) {
                 this.context = context;
@@ -31,8 +28,6 @@ public class KNearestClusterProcessorSupplier implements ProcessorSupplier<Integ
             @Override
             public void process(Integer key, Cluster value) {
                 if (Cluster.isEndOfWindowToken(value)){
-                    long start = System.currentTimeMillis();
-
                     for (KeyValueIterator<Integer, Cluster> it = this.clusters.all(); it.hasNext(); ) {
                         KeyValue<Integer, Cluster> kv = it.next();
                         Cluster cluster = kv.value;
@@ -50,16 +45,6 @@ public class KNearestClusterProcessorSupplier implements ProcessorSupplier<Integ
                         KeyValue<Integer, Cluster> kv = it.next();
                         this.clusters.delete(kv.key);
                     }
-
-                    if(benchmarkTime == 0) {
-                        benchmarkTime = System.currentTimeMillis() - start;
-                    } else {
-                        benchmarkTime = (benchmarks * benchmarkTime + (System.currentTimeMillis() - start)) / (benchmarks + 1);
-                    }
-
-                    benchmarks++;
-
-                    System.out.println("KNN Cluster: " + benchmarkTime);
                 } else {
                     this.clusters.put(key, value);
                 }

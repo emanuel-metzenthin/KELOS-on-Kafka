@@ -28,9 +28,6 @@ public class ClusteringProcessorSupplier implements ProcessorSupplier<Integer, A
             private WindowStore<Integer, Triple<Integer, ArrayList<Double>, Long>> clusterAssignments;
             private KeyValueStore<Integer, Cluster> clusters;
 
-            private long benchmarkTime = 0;
-            private int benchmarks = 0;
-
             /*
                 Assigns an incoming point to a cluster or creates a new cluster.
                 The ArrayList value contains the individual coordinates of the point.
@@ -86,8 +83,6 @@ public class ClusteringProcessorSupplier implements ProcessorSupplier<Integer, A
 
                 // Emit cluster meta data after sub-window has been processed
                 this.context.schedule(WINDOW_TIME, PunctuationType.STREAM_TIME, timestamp -> {
-                    long start = System.currentTimeMillis();
-
                     // Perform clustering
                     for(KeyValueIterator<Integer, ArrayList<Double>> i = this.pointBuffer.all(); i.hasNext();) {
                         KeyValue<Integer, ArrayList<Double>> point = i.next();
@@ -120,16 +115,6 @@ public class ClusteringProcessorSupplier implements ProcessorSupplier<Integer, A
 
                         this.tempClusters.put(cluster.key, emptyCluster);
                     }
-
-                    if(benchmarkTime == 0) {
-                        benchmarkTime = System.currentTimeMillis() - start;
-                    } else {
-                        benchmarkTime = (benchmarks * benchmarkTime + (System.currentTimeMillis() - start)) / (benchmarks + 1);
-                    }
-
-                    benchmarks++;
-
-                    System.out.println("Clustering: " + benchmarkTime);
                 });
             }
 
