@@ -54,19 +54,9 @@ public class KNearestPointsProcessorSupplier implements ProcessorSupplier<Intege
                     HashSet<Integer> candidateKNNs = new HashSet<>();
                     HashSet<Integer> knnKNNs = new HashSet<>();
 
-                    boolean first = true;
-
                     // Compute KNNs for candidate points
                     for (KeyValueIterator<Integer, Cluster> it = this.candidatePoints.all(); it.hasNext();) {
                         KeyValue<Integer, Cluster> kv = it.next();
-
-                        if(first) {
-                            System.out.println("KNN points from " + kv.key);
-                            first = false;
-                        }
-                        if(!it.hasNext()) {
-                            System.out.println("KNN points last " + kv.key);
-                        }
 
                         Cluster cluster = kv.value;
 

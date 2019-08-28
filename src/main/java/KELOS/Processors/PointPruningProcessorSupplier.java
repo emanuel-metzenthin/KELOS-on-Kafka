@@ -57,22 +57,12 @@ public class PointPruningProcessorSupplier implements ProcessorSupplier<Integer,
                             .maximumSize(N)
                             .create();
 
-                    boolean first = true;
-
                     for(KeyValueIterator<Integer, Pair<Cluster, Integer>> i = this.pointWithDensities.all(); i.hasNext();) {
                         KeyValue<Integer, Pair<Cluster, Integer>> point = i.next();
 
                         //No KLOME score calculation for non-candidates
                         if (point.value.getRight() == KNearestPointsProcessorSupplier.CANDIDATE_NEIGHBOR){
                             continue;
-                        }
-
-                        if(first) {
-                            System.out.println("Outlier points from " + point.key);
-                            first = false;
-                        }
-                        if(!i.hasNext()) {
-                            System.out.println("Outlier points last " + point.key);
                         }
 
                         double knnMean = 0;

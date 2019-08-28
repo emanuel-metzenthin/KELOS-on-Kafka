@@ -3,15 +3,15 @@ package KELOS.Processors;
 import KELOS.Cluster;
 import org.apache.commons.lang3.tuple.Triple;
 import org.apache.kafka.streams.KeyValue;
-import org.apache.kafka.streams.processor.*;
+import org.apache.kafka.streams.processor.Processor;
+import org.apache.kafka.streams.processor.ProcessorContext;
+import org.apache.kafka.streams.processor.ProcessorSupplier;
 import org.apache.kafka.streams.state.KeyValueIterator;
 import org.apache.kafka.streams.state.KeyValueStore;
 
-
 import java.util.ArrayList;
-import java.util.Comparator;
 
-import static KELOS.Main.*;
+import static KELOS.Main.N;
 
 
 public class PruningProcessorSupplier implements ProcessorSupplier<Integer, Cluster> {

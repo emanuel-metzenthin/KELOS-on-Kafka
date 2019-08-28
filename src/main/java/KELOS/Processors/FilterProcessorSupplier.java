@@ -44,22 +44,12 @@ public class FilterProcessorSupplier implements ProcessorSupplier<Integer, Clust
                 if (Cluster.isEndOfWindowToken(value)){
                     long start = System.currentTimeMillis();
 
-                    boolean first = true;
-
                     // Fetch all points and their cluster assignment in current aggregated window
                     long fromTime = this.context.timestamp() - (long) (((double) AGGREGATION_WINDOWS - 0.5) * WINDOW_TIME.toMillis());
                     long toTime = this.context.timestamp();
 
                     for(KeyValueIterator<Windowed<Integer>, Triple<Integer, ArrayList<Double>, Long>> i = this.windowPoints.fetchAll(fromTime, toTime); i.hasNext();) {
                         KeyValue<Windowed<Integer>, Triple<Integer, ArrayList<Double>, Long>> point = i.next();
-
-                        if(first) {
-                            System.out.println("Filter points from " + point.key.key());
-                            first = false;
-                        }
-                        if(!i.hasNext()) {
-                            System.out.println("Filter points last " + point.key.key());
-                        }
 
                         // Check if the point's cluster is one of the clusters that could contain outliers
                         Cluster cluster = this.topNClusters.get(point.value.getLeft());

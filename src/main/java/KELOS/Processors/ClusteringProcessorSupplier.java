@@ -87,19 +87,10 @@ public class ClusteringProcessorSupplier implements ProcessorSupplier<Integer, A
                 // Emit cluster meta data after sub-window has been processed
                 this.context.schedule(WINDOW_TIME, PunctuationType.STREAM_TIME, timestamp -> {
                     long start = System.currentTimeMillis();
-                    boolean first = true;
 
                     // Perform clustering
                     for(KeyValueIterator<Integer, ArrayList<Double>> i = this.pointBuffer.all(); i.hasNext();) {
                         KeyValue<Integer, ArrayList<Double>> point = i.next();
-
-                        if(first) {
-                            System.out.println("Clustering points from " + point.key);
-                            first = false;
-                        }
-                        if(!i.hasNext()) {
-                            System.out.println("Clustering points last " + point.key);
-                        }
 
                         this.processPoint(point.key, point.value);
 

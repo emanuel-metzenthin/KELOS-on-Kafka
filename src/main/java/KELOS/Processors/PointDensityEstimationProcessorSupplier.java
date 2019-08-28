@@ -41,19 +41,8 @@ public class PointDensityEstimationProcessorSupplier implements ProcessorSupplie
             public void process(Integer key, Pair<Cluster, Integer> value) {
 
                 if (Cluster.isEndOfWindowToken(value.getLeft())){
-
-                    boolean first = true;
-
                     for(KeyValueIterator<Integer, Pair<Cluster, Integer>> it = this.windowPoints.all(); it.hasNext();) {
                         KeyValue<Integer, Pair<Cluster, Integer>> kv = it.next();
-
-                        if(first) {
-                            System.out.println("Density points from " + kv.key);
-                            first = false;
-                        }
-                        if(!it.hasNext()) {
-                            System.out.println("Density points last " + kv.key);
-                        }
 
                         Integer neighborKey = kv.key;
 
