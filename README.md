@@ -78,31 +78,34 @@ This process is described in detail in the KELOS publication [4]. The paper also
 
 The pruning algorithm works as follows. For each cluster we keep track of how many other clusters have a smaller upper KLOME bound than the lower bound of the cluster we are looking at. We then only forward the clusters where less then N other clusters meet this condition. Figure 5 shows the implementation.
 
-```
+```java
 int[] smallerKlomeCounts = new int[clustersWithKlome.size()];
 
-                    for (int i = 0; i < clustersWithKlome.size(); i++) {
-                        Triple<Integer, Double, Double> t1 = clustersWithKlome.get(i);
-                        int size = this.clusterWithDensities.get(t1.getLeft()).size;
+for (int i = 0; i < clustersWithKlome.size(); i++) {
+    Triple<Integer, Double, Double> t1 = clustersWithKlome.get(i);
+    int size = this.clusterWithDensities.get(t1.getLeft()).size;
 
-                        for (int j = 0; j < clustersWithKlome.size(); j++) {
-                            Triple<Integer, Double, Double> t2 = clustersWithKlome.get(j);
-                            if (t1.getRight() < t2.getMiddle()) {
-                                smallerKlomeCounts[j] += size;
-                            }
-                        }
-                    }
+    for (int j = 0; j < clustersWithKlome.size(); j++) {
+        Triple<Integer, Double, Double> t2 = clustersWithKlome.get(j);
+        if (t1.getRight() < t2.getMiddle()) {
+            smallerKlomeCounts[j] += size;
+        }
+    }
+}
 
-                    // Determine whether the clusters might contain outliers
-                    for (int i = 0; i < smallerKlomeCounts.length; i++) {
-                        int cluster = clustersWithKlome.get(i).getLeft();
+// Determine whether the clusters might contain outliers
+for (int i = 0; i < smallerKlomeCounts.length; i++) {
+    int cluster = clustersWithKlome.get(i).getLeft();
 
-                        if (smallerKlomeCounts[i] < N) {
-                            // Indicate the cluster may contain outliers
+    if (smallerKlomeCounts[i] < N) {
+        // Indicate the cluster may contain outliers
 
-                            Pair<Cluster, Boolean> pair = Pair.of(this.clusterWithDensities.get(cluster), true);
-                            this.context.forward(cluster, pair);
-                        }
+        Pair<Cluster, Boolean> pair = Pair.of(this.clusterWithDensities.get(cluster), true);
+        this.context.forward(cluster, pair);
+    }
+    
+...
+
 ```
 *Figure 5: Pruning Algorithm*
 
