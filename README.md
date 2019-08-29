@@ -118,10 +118,25 @@ Here, all points that lie within clusters that are not pruned get tagged as all 
 
 ## 6.1 Performance Benchmark
 
-![Figure 7: Comparison of number of neighbors](./figures/k-comparison.png)
-*Comparison of number of neighbors*
-![Figure 8: Comparison of number of window panes](./figures/window-panes.png)
-*Figure 8: Comparison of number of window panes*
+For analyzing the performance of the application we used a synthetic three-dimensional dataset consisting of 3.000 data points.
+We measured the average window processing time, i.e. per application window or sub-window pane, for every processor. The experiments were executed on a MacBook Pro (6x Intel Core i7 @ 2.2 GHz, 16GB RAM).
+
+We evaluated the influence of several hyper-parameters: K (10, 20, 30, 40), Elements per window (100, 500, 1000) and Number of sub-window panes (2, 5, 10).
+
+We notice that the runtime for each processed window decreases towards the end of the pipeline, with the ClusteringProcessor being the slowest computation (see figures 7, 8 and 9). This result is congruent with the runtime analysis in the KELOS publication.
+
+The number of panes per sliding window has no effect on the performance. We contribute the small fluctuations in processing speed in our experiments (figure 7) to measuring inaccuracies.
+
+![Figure 7: Comparison of number of window panes](./figures/window-panes.png)
+*Figure 7: Comparison of number of window panes*
+
+The number of neighbors has a linear influence on the processing speed (see figure 8). Only for a small number for K (10 or 20) the runtime remains the same.
+
+![Figure 8: Comparison of number of neighbors](./figures/k-comparison.png)
+*Figure 8: Comparison of number of neighbors*
+
+Furthermore our experiments show that the runtime per window scales linearly with the number of data points per window (see figure 9).
+
 ![Figure 9: Comparison of number of elements per window](./figures/elements-per-window.png)
 *Figure 9: Comparison of number of elements per window*
 
