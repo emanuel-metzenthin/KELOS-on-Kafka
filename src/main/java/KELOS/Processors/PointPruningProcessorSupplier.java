@@ -1,7 +1,6 @@
 package KELOS.Processors;
 
 import KELOS.Cluster;
-import com.google.common.collect.MinMaxPriorityQueue;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.kafka.streams.KeyValue;
 import org.apache.kafka.streams.processor.*;
@@ -41,10 +40,7 @@ public class PointPruningProcessorSupplier implements ProcessorSupplier<Integer,
             @Override
             public void process(Integer key, Pair<Cluster, Boolean> value) {
                 if (Cluster.isEndOfWindowToken(value.getLeft())){
-                    MinMaxPriorityQueue<Pair<Integer, Double>> queue = MinMaxPriorityQueue
-                            .orderedBy(new KlomeComparator())
-                            .maximumSize(N)
-                            .create();
+                    PriorityQueue<Pair<Integer, Double>> queue = new PriorityQueue<>(N, new KlomeComparator());
 
                     for(KeyValueIterator<Integer, Pair<Cluster, Boolean>> i = this.pointWithDensities.all(); i.hasNext();) {
                         KeyValue<Integer, Pair<Cluster, Boolean>> point = i.next();
@@ -84,19 +80,17 @@ public class PointPruningProcessorSupplier implements ProcessorSupplier<Integer,
                             klome = (point.value.getLeft().density - knnMean) / knnStddev;
                         }
 
-                        Pair pointWithKlome = Pair.of(point.key, klome);
+                        Pair<Integer, Double> pointWithKlome = Pair.of(point.key, klome);
 
                         queue.add(pointWithKlome);
                     }
 
-                    int count = 1;
-
-                    for (Pair<Integer, Double> t : queue) {
+                    for (int count = 0; count < N && !queue.isEmpty(); count++) {
+                        Pair<Integer, Double> t = queue.poll();
                         int key2 = t.getLeft();
                         Cluster cluster = this.pointWithDensities.get(key2).getLeft();
                         this.context.forward(key2, cluster);
                         System.out.println("Outlier: " + count + " Punkt: " + key2 + " KLOME: " + t.getRight() + " density: " + cluster.density);
-                        count++;
                     }
 
                     context.commit();
