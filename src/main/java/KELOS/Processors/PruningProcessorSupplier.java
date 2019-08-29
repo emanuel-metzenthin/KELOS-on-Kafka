@@ -1,6 +1,7 @@
 package KELOS.Processors;
 
 import KELOS.Cluster;
+import org.apache.commons.lang3.tuple.Pair;
 import org.apache.commons.lang3.tuple.Triple;
 import org.apache.kafka.streams.KeyValue;
 import org.apache.kafka.streams.processor.Processor;
@@ -84,16 +85,25 @@ public class PruningProcessorSupplier implements ProcessorSupplier<Integer, Clus
                         }
                     }
 
-                    // Forward only those where less than N points with lower KLOME could be found
+                    // Determine whether the clusters might contain outliers
                     for (int i = 0; i < smallerKlomeCounts.length; i++) {
-                        if (smallerKlomeCounts[i] < N) {
-                            int cluster = clustersWithKlome.get(i).getLeft();
+                        int cluster = clustersWithKlome.get(i).getLeft();
 
-                            this.context.forward(cluster, this.clusterWithDensities.get(cluster));
+                        if (smallerKlomeCounts[i] < N) {
+                            // Indicate the cluster may contain outliers
+
+                            Pair<Cluster, Boolean> pair = Pair.of(this.clusterWithDensities.get(cluster), true);
+                            this.context.forward(cluster, pair);
+                        }
+                        else{
+                            // Indicate the cluster does not contain outliers
+
+                            Pair<Cluster, Boolean> pair = Pair.of(this.clusterWithDensities.get(cluster), false);
+                            this.context.forward(cluster, pair);
                         }
                     }
 
-                    this.context.forward(key, value);
+                    this.context.forward(key, Pair.of(value, false));
 
                     for (KeyValueIterator<Integer, Cluster> i = this.clusterWithDensities.all(); i.hasNext(); ) {
                         KeyValue<Integer, Cluster> cluster = i.next();

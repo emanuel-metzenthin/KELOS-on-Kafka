@@ -20,37 +20,37 @@ import java.util.TimeZone;
 
 import static KELOS.Main.K;
 
-public class PointDensityEstimationProcessorSupplier implements ProcessorSupplier<Integer, Pair<Cluster, Integer>> {
+public class PointDensityEstimationProcessorSupplier implements ProcessorSupplier<Integer, Pair<Cluster, Boolean>> {
 
     /*
         Estimates the density for the candidates as well as for the nearest neighbors of the candidates.
      */
     @Override
-    public Processor<Integer, Pair<Cluster, Integer>> get() {
-        return new Processor<Integer, Pair<Cluster, Integer>>() {
+    public Processor<Integer, Pair<Cluster, Boolean>> get() {
+        return new Processor<Integer, Pair<Cluster, Boolean>>() {
             private ProcessorContext context;
-            private KeyValueStore<Integer, Pair<Cluster, Integer>> windowPoints;
+            private KeyValueStore<Integer, Pair<Cluster, Boolean>> windowPoints;
 
             @Override
             public void init(ProcessorContext context) {
                 this.context = context;
-                this.windowPoints = (KeyValueStore<Integer, Pair<Cluster, Integer>>) context.getStateStore("PointDensityBuffer");
+                this.windowPoints = (KeyValueStore<Integer, Pair<Cluster, Boolean>>) context.getStateStore("PointDensityBuffer");
             }
 
             @Override
-            public void process(Integer key, Pair<Cluster, Integer> value) {
+            public void process(Integer key, Pair<Cluster, Boolean> value) {
                 if (Cluster.isEndOfWindowToken(value.getLeft())){
-                    for(KeyValueIterator<Integer, Pair<Cluster, Integer>> it = this.windowPoints.all(); it.hasNext();) {
-                        KeyValue<Integer, Pair<Cluster, Integer>> kv = it.next();
+                    for(KeyValueIterator<Integer, Pair<Cluster, Boolean>> it = this.windowPoints.all(); it.hasNext();) {
+                        KeyValue<Integer, Pair<Cluster, Boolean>> kv = it.next();
 
                         Integer neighborKey = kv.key;
+                        Cluster point = kv.value.getLeft();
 
-                        // Don't compute density for neighbors of neighbors
-                        if (kv.value.getRight() == KNearestPointsProcessorSupplier.NEIGHBOR_OF_NEIGHBOR){
+                        // Don't compute density for the clusters, we already did that earlier
+                        if (!kv.value.getRight()){
+                            this.context.forward(neighborKey, Pair.of(point, false));
                             continue;
                         }
-
-                        Cluster point = kv.value.getLeft();
 
                         ArrayList<Cluster> kNNs = new ArrayList<>();
 
@@ -90,12 +90,10 @@ public class PointDensityEstimationProcessorSupplier implements ProcessorSupplie
 
                             for(int m = 0; m < k; m++) {
                                 double diffToMean = kNNs.get(m).centroid[i] - dimensionMeans.get(i);
-                                System.out.println(pointWeight);
                                 stdDev += Math.pow(diffToMean, 2) * pointWeight;
                             }
 
                             stdDev = Math.sqrt(stdDev);
-                            System.out.println(stdDev);
 
                             dimensionStdDevs.add(stdDev);
                         }
@@ -121,14 +119,14 @@ public class PointDensityEstimationProcessorSupplier implements ProcessorSupplie
                         }
 
                         // Forward point with candidate indication
-                        this.context.forward(neighborKey, Pair.of(point, kv.value.getRight()));
+                        this.context.forward(neighborKey, Pair.of(point, true));
                     }
 
                     // Forward EndOfWindowToken
-                    this.context.forward(key, Pair.of(value.getLeft(), 0.0));
+                    this.context.forward(key, Pair.of(value.getLeft(), false));
 
-                    for(KeyValueIterator<Integer, Pair<Cluster, Integer>> i = this.windowPoints.all(); i.hasNext();) {
-                        KeyValue<Integer, Pair<Cluster, Integer>> cluster = i.next();
+                    for(KeyValueIterator<Integer, Pair<Cluster, Boolean>> i = this.windowPoints.all(); i.hasNext();) {
+                        KeyValue<Integer, Pair<Cluster, Boolean>> cluster = i.next();
 
                         this.windowPoints.delete(cluster.key);
                     }

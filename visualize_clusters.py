@@ -9,9 +9,9 @@ centroids = pd.read_csv('clusters.csv', header=None)
 fig = plt.figure(figsize=(20,20))
 ax = fig.add_subplot(1, 1, 1)
 start = 0
-end = 200
+end = 1000
 cluster_start = 0
-cluster_end = 46
+cluster_end = 245
 
 _ = ax.scatter(data[2][start:end],data[3][start:end],c=data[1][start:end], cmap='viridis', s=20)
 _ = ax.scatter(centroids[1][cluster_start:cluster_end],centroids[2][cluster_start:cluster_end],c='black', s=20, alpha=0.5)

@@ -5,7 +5,7 @@ import numpy as np
 
 elements_per_window = 3000
 aggregation_windows = 3
-n = 10
+n = 100
 
 
 data = pd.read_csv('gmm_test_data_unlabeled.csv', header=None)

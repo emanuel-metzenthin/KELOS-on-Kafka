@@ -27,13 +27,13 @@ public class Main {
     public static final String OUTLIERS_TOPIC = "outliers";
 
     // ALGORITHM CONFIGURATION
-    public static final int AGGREGATION_WINDOWS = 2;
+    public static final int AGGREGATION_WINDOWS = 3;
     public static final Duration WINDOW_TIME = Duration.ofSeconds(10);
-    public static final double CLUSTERING_DISTANCE_THRESHOLD = 0.5;
+    public static final double CLUSTERING_DISTANCE_THRESHOLD = 0.25;
     // K-NN neighbors
-    public static final int K = 40;
+    public static final int K = 20;
     // Top-N outlier number
-    public static final int N = 10;
+    public static final int N = 100;
 
     public static void main(final String[] args) {
         final Properties props = new Properties();
@@ -149,12 +149,12 @@ public class Main {
 
         builder.addStateStore(
                 Stores.keyValueStoreBuilder(
-                        Stores.inMemoryKeyValueStore("TopNClusters"),
+                        Stores.inMemoryKeyValueStore("ClustersWithCandidates"),
                         Serdes.Integer(),
-                        new ClusterSerde()),
+                        new PairSerde()),
                 "FilterProcessor");
 
-        builder.addSink("OutlierCandidatesSink", CANDIDATES_TOPIC, new IntegerSerializer(), new IntBoolPairSerializer(), "FilterProcessor");
+        builder.addSink("OutlierCandidatesSink", CANDIDATES_TOPIC, new IntegerSerializer(), new PairSerializer(), "FilterProcessor");
 
         // ++++++++ OUTLIER DETECTOR ++++++++
 

@@ -16,13 +16,13 @@ import org.apache.kafka.common.serialization.IntegerSerializer;
 
 public class InputProducer {
 
-    static String CSV_DATA = "./cluster_test_data.csv";
+    static String CSV_DATA = "./gmm_test_data_unlabeled.csv";
     //static String CSV_DATA = "./test_data_unlabeled.csv";
     static String TOPIC = "data-input";
     static String APP_ID = "input-producer";
     static String SERVER_CONFIGS = "localhost:9092";
 
-    static int ELEMENTS_PER_WINDOW = 500;
+    static int ELEMENTS_PER_WINDOW = 3000;
 
     public static void main(String[] args) {
         runProducer(ELEMENTS_PER_WINDOW);

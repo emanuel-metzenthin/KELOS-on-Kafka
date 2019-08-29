@@ -1,8 +1,6 @@
 package KELOS;
 
 import KELOS.Serdes.ClusterDeserializer;
-import KELOS.Serdes.IntBoolPairDeserializer;
-import org.apache.commons.lang3.tuple.Pair;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
@@ -20,7 +18,6 @@ import java.time.Duration;
 import java.util.Collections;
 import java.util.Properties;
 
-import static KELOS.Main.CANDIDATES_TOPIC;
 import static KELOS.Main.OUTLIERS_TOPIC;
 
 public class OutlierConsumer {
