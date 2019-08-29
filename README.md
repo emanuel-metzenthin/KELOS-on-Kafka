@@ -142,7 +142,7 @@ Furthermore our experiments show that the runtime per window scales linearly wit
 
 ## 6.2 Effectiveness Evaluation
 
-For evaluating the effectiveness of our implementation, we compare our results to those in the paper. In the original publication, the alorithm was tested on three real-world datasets. Unfortunately, we were unable to obtain the Yahoo! A1 and Yahoo! A2 datasets [9] because the registration necessary to access them did not work on multiple separate attempts. The last dataset is from KDD99 [10] but, mismatches in the number of records indicate that not entire dataset was used. The paper itself does not mention this, however we believe that the dataset was preprocessed as described in [], because the number of records reported matches there those in the base paper.
+For evaluating the effectiveness of our implementation, we compare our results to those in the paper. In the original publication, the alorithm was tested on three real-world datasets. Unfortunately, we were unable to obtain the Yahoo! A1 and Yahoo! A2 datasets [9] because the registration necessary to access them did not work on multiple separate attempts. The last dataset is from KDD99 [10] but, mismatches in the number of records indicate that not entire dataset was used. The paper itself does not mention this, however we believe that the dataset was preprocessed as described in [11], because the number of records reported matches there those in the base paper.
 
 # 7 Conclusion and future work
 
