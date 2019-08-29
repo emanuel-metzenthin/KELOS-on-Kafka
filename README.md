@@ -88,9 +88,18 @@ Here, all points that lie within clusters that are not pruned get tagged as all 
 
 # 6 Evaluation
 
-## 6.1 Experimental Setup
+## 6.1 Performance Benchmark
 
-## 6.2 Results
+![Figure 7: Comparison of number of neighbors](./figures/k-comparison.png)
+*Comparison of number of neighbors*
+![Figure 8: Comparison of number of window panes](./figures/window-panes.png)
+*Figure 8: Comparison of number of window panes*
+![Figure 9: Comparison of number of elements per window](./figures/elements-per-window.png)
+*Figure 9: Comparison of number of elements per window*
+
+## 6.2 Experimental Setup
+
+## 6.3 Results
 
 # 7 Conclusion and future work
 
