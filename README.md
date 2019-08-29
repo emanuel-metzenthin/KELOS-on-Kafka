@@ -140,9 +140,9 @@ Furthermore our experiments show that the runtime per window scales linearly wit
 ![Figure 9: Comparison of number of elements per window](./figures/elements-per-window.png)
 *Figure 9: Comparison of number of elements per window*
 
-## 6.2 Experimental Setup
+## 6.2 Effectiveness Evaluation
 
-## 6.3 Results
+For evaluating the effectiveness of our implementation, we compare our results to those in the paper. In the original publication, the alorithm was tested on three real-world datasets. Unfortunately, we were unable to obtain the Yahoo! A1 and Yahoo! A2 datasets [9] because the registration necessary to access them did not work on multiple separate attempts. The last dataset is from KDD99 [10] but, mismatches in the number of records indicate that not entire dataset was used. The paper itself does not mention this, however we believe that the dataset was preprocessed as described in [], because the number of records reported matches there those in the base paper.
 
 # 7 Conclusion and future work
 
@@ -164,3 +164,9 @@ Data Streams. TKDE 28, 12 (2016), 3246–3260.
 [7] Lei Cao, Di Yang, Qingyang Wang, Yanwei Yu, Jiayuan Wang, and Elke A. Rundensteiner. 2014. Scalable distance-based outlier detection over high-volume data streams. In ICDE. IEEE, 76–87.
 
 [8] Fabrizio Angiulli and Fabio Fassetti. 2007. Detecting distance-based outliers in streams of data. Proceedings of the sixteenth ACM conference on Conference on information and knowledge management. 811-820.
+
+[9] Nikolay Laptev, Saeed Amizadeh, and Ian Flint. 2015. Generic and Scalable Framework for Automated Time-series Anomaly Detection. In SIGKDD. 1939–1947.
+
+[10] The Third International Knowledge Discovery and Data Mining Tools Competition. 1999. KDD Cup Dataset. http://kdd.ics.uci.edu/databases/kddcup99/kddcup99.html (1999).
+
+[11] Kenji Yamanishi, Jun-Ichi Takeuchi, Graham Williams and Peter Milne. 2000. On-line unsupervised outlier detection using finite mixtures with discounting learning algorithms. In Data Mining and Knowledge Discovery.
