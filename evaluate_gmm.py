@@ -1,6 +1,5 @@
 import pandas as pd
 from sklearn.neighbors import LocalOutlierFactor
-import matplotlib.pyplot as plt
 import numpy as np
 
 elements_per_window = 3000
