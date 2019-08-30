@@ -150,7 +150,14 @@ The benchmarked metric is the *Precision@|O|* that was also used in the base pap
 
 *Formula 1: P@|O| calculation [4]*
 
-The evaluation was done with a clustering threshold of 0.095 and a window size of 6000 points as the original paper found those to be the ideal values for the dataset. The slide size was set to 2000 points, while k was varied between 5 and 150. As figure 10 shows, the *P@|O|* rises quickly as k increases to 50, to then show little change past that point. These results are in line with those reported in the base paper, confirming that our implementation of the KELOS-algorithm is correct.
+The evaluation was done with a clustering threshold of 0.095 and a window size of 6000 points as the original paper found those to be the ideal values for the dataset. The slide size was set to 2000 points, while k was varied between 5 and 100. 
+
+![Figure 10: P@|O| for different k on HTTP dataset](./figures/evaluation.png)
+
+*Figure 10: P@|O| for different k on HTTP dataset*
+
+
+As figure 10 shows, the *P@|O|* rises quickly as k increases to 50, to then shows little change past that point. These results are in line with those reported in the base paper, confirming that our implementation of the KELOS-algorithm is correct.
 
 # 7 Conclusion and future work
 
