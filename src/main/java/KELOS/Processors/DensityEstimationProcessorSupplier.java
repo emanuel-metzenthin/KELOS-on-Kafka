@@ -22,6 +22,9 @@ public class DensityEstimationProcessorSupplier implements ProcessorSupplier<Int
             private ProcessorContext context;
             private KeyValueStore<Integer, Cluster> clusters;
 
+            private long benchmarkTime = 0;
+            private int benchmarks = 0;
+
             @Override
             public void init(ProcessorContext context) {
                 this.context = context;
@@ -32,6 +35,7 @@ public class DensityEstimationProcessorSupplier implements ProcessorSupplier<Int
             public void process(Integer key, Cluster cluster) {
                 // At end of window
                 if (Cluster.isEndOfWindowToken(cluster)){
+                    long start = System.currentTimeMillis();
                     for(KeyValueIterator<Integer, Cluster> it = this.clusters.all(); it.hasNext();) {
                         KeyValue<Integer, Cluster> kv = it.next();
                         Integer storeKey = kv.key;
@@ -139,6 +143,16 @@ public class DensityEstimationProcessorSupplier implements ProcessorSupplier<Int
 
                         this.clusters.delete(storeCluster.key);
                     }
+
+                    if(benchmarkTime == 0) {
+                        benchmarkTime = System.currentTimeMillis() - start;
+                    } else {
+                        benchmarkTime = (benchmarks * benchmarkTime + (System.currentTimeMillis() - start)) / (benchmarks + 1);
+                    }
+
+                    benchmarks++;
+
+                    System.out.println("Density Clusters: " + benchmarkTime);
                 }
 
                 // If not end of window

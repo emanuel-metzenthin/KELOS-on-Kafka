@@ -31,6 +31,9 @@ public class PointDensityEstimationProcessorSupplier implements ProcessorSupplie
             private ProcessorContext context;
             private KeyValueStore<Integer, Pair<Cluster, Boolean>> windowPoints;
 
+            private long benchmarkTime = 0;
+            private long benchmarks = 0;
+
             @Override
             public void init(ProcessorContext context) {
                 this.context = context;
@@ -40,6 +43,8 @@ public class PointDensityEstimationProcessorSupplier implements ProcessorSupplie
             @Override
             public void process(Integer key, Pair<Cluster, Boolean> value) {
                 if (Cluster.isEndOfWindowToken(value.getLeft())){
+                    long start = System.currentTimeMillis();
+
                     for(KeyValueIterator<Integer, Pair<Cluster, Boolean>> it = this.windowPoints.all(); it.hasNext();) {
                         KeyValue<Integer, Pair<Cluster, Boolean>> kv = it.next();
 
@@ -130,6 +135,16 @@ public class PointDensityEstimationProcessorSupplier implements ProcessorSupplie
 
                         this.windowPoints.delete(cluster.key);
                     }
+
+                    if(benchmarkTime == 0) {
+                        benchmarkTime = System.currentTimeMillis() - start;
+                    } else {
+                        benchmarkTime = (benchmarks * benchmarkTime + (System.currentTimeMillis() - start)) / (benchmarks + 1);
+                    }
+
+                    benchmarks++;
+
+                    System.out.println("Density Points: " + benchmarkTime);
                 }
                 else {
                     this.windowPoints.put(key, value);

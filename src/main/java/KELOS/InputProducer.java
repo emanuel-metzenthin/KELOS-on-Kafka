@@ -22,7 +22,7 @@ public class InputProducer {
     static String APP_ID = "input-producer";
     static String SERVER_CONFIGS = "localhost:9092";
 
-    static int ELEMENTS_PER_WINDOW = 3000;
+    static int ELEMENTS_PER_WINDOW = 500;
 
     public static void main(String[] args) {
         runProducer(ELEMENTS_PER_WINDOW);

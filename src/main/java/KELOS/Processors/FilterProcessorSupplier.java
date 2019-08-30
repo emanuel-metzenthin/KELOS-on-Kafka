@@ -28,6 +28,9 @@ public class FilterProcessorSupplier implements ProcessorSupplier<Integer, Pair<
             private KeyValueStore<Integer, Pair<Cluster, Boolean>> clusters;
             private WindowStore<Integer, Triple<Integer, ArrayList<Double>, Long>> windowPoints;
 
+            private long benchmarkTime = 0;
+            private long benchmarks = 0;
+
             @Override
             public void init(ProcessorContext context) {
                 this.context = context;
@@ -38,6 +41,7 @@ public class FilterProcessorSupplier implements ProcessorSupplier<Integer, Pair<
             @Override
             public void process(Integer key, Pair<Cluster, Boolean> value) {
                 if (Cluster.isEndOfWindowToken(value.getLeft())){
+                    long start = System.currentTimeMillis();
                     // Fetch all points and their cluster assignment in current aggregated window
                     long fromTime = this.context.timestamp() - (long) (((double) AGGREGATION_WINDOWS - 0.5) * WINDOW_TIME.toMillis());
                     long toTime = this.context.timestamp();
@@ -70,6 +74,16 @@ public class FilterProcessorSupplier implements ProcessorSupplier<Integer, Pair<
 
                     // Forward EndOfWindowToken
                     this.context.forward(key, Pair.of(value.getLeft(), true));
+
+                    if(benchmarkTime == 0) {
+                        benchmarkTime = System.currentTimeMillis() - start;
+                    } else {
+                        benchmarkTime = (benchmarks * benchmarkTime + (System.currentTimeMillis() - start)) / (benchmarks + 1);
+                    }
+
+                    benchmarks++;
+
+                    System.out.println("Filter: " + benchmarkTime);
                 }
                 else {
                     this.clusters.put(key, value);

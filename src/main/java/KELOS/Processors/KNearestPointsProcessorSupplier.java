@@ -24,6 +24,9 @@ public class KNearestPointsProcessorSupplier implements ProcessorSupplier<Intege
             private KeyValueStore<Integer, Cluster> clusters;
             private KeyValueStore<Integer, Cluster> candidatePoints;
 
+            private long benchmarkTime = 0;
+            private long benchmarks = 0;
+
             @Override
             public void init(ProcessorContext context) {
                 this.context = context;
@@ -34,7 +37,7 @@ public class KNearestPointsProcessorSupplier implements ProcessorSupplier<Intege
             @Override
             public void process(Integer key, Pair<Cluster, Boolean> value) {
                 if (Cluster.isEndOfWindowToken(value.getLeft())){
-
+                    long start = System.currentTimeMillis();
                     // Compute KNNs for candidate points
                     for (KeyValueIterator<Integer, Cluster> it = this.candidatePoints.all(); it.hasNext();) {
                         KeyValue<Integer, Cluster> kv = it.next();
@@ -61,6 +64,16 @@ public class KNearestPointsProcessorSupplier implements ProcessorSupplier<Intege
                     }
 
                     context.forward(key, Pair.of(value.getLeft(), false));
+
+                    if(benchmarkTime == 0) {
+                        benchmarkTime = System.currentTimeMillis() - start;
+                    } else {
+                        benchmarkTime = (benchmarks * benchmarkTime + (System.currentTimeMillis() - start)) / (benchmarks + 1);
+                    }
+
+                    benchmarks++;
+
+                    System.out.println("KNN Points: " + benchmarkTime);
                 }
                 else {
                     if(value.getRight()) {
