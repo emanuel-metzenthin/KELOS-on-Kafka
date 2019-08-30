@@ -163,9 +163,9 @@ For evaluating the effectiveness of our implementation, we compare our results t
 
 The benchmarked metric is the *Precision@|O|* that was also used in the base paper [4]. It is calculated by dividing the total number of correctly identified outliers over all windows through the number of ground truth outliers present in them (see formula 1). Assuming there are *|O|<sub>i</sub>* ground truth outliers in the i-th window, only those that are among the top-*|O|<sub>i</sub>* points with the lowest KLOME score in the window are considered to be correctly identified. Since we work with sliding windows, outliers will be counted multiple times because they appear in multiple windows.
 
-![Formula 1: P@|O| calculation](./figures/precision_at_o.png)
+![Formula 2: P@|O| calculation](./figures/precision_at_o.png)
 
-*Formula 1: P@|O| calculation [4]*
+*Formula 2: P@|O| calculation [4]*
 
 The evaluation was done with a clustering threshold of 0.095 and a window size of 6000 points as the original paper found those to be the ideal values for the dataset. The slide size was set to 2000 points, while k was varied between 5 and 100. 
 
