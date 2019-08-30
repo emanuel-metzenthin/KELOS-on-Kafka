@@ -5,6 +5,13 @@ KELOS (Scalable Kernel Density Estimation-based Local Outlier Detection over Lar
 
 # 2 Installation instructions
 
+- Download [`docker-compose.yml`](./docker-compose.yml)
+- ```docker-compose up -d``` to start Kafka broker
+- Specify the source dataset in the [`Input Producer`](./InputProducer.java)
+- Specify parameter `K`, `N`, `AGGREGATION_WINDOWS` in the [`main class`](Main.java) and `ELEMENTS_PER_WINDOW` in the [`Input Producer`](./InputProducer.java)
+- Start `InputProducer` to load the data and `Main.java`
+- Optional: Start the Consumers and ```python visualize_outliers.py``` to visualize the result
+
 # 3 Motivation
 
 Techniques for outlier detection are applicable to and needed for a variety of domains, ranging from financial fraud detection to network security [4]. The goal is to identify data points which are very different from the rest of the dataset. In the case of credit card fraud this could be card transactions accuring in a particularly high frequency or unusual location. The concept of *local* outliers works with the assumption that most datasets in the real-world are skewed and that their data points thus have varying distribution properties [1]. Therefore a point is considered an outlier only if the density at that spot is considerably lower than at the surrounding points, rather than taking the global dataset density into account. 
