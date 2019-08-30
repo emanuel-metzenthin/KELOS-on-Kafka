@@ -30,7 +30,15 @@ A kernel function, typically a gaussian probability density function, is used in
 
 Then an outlier score (KLOME score) gets computed and lower and upper bounds of that score determined for each cluster. Based on these bounds the clusters that will definitely not contain outliers get pruned. Finally the KLOME scores for all points in the remaining clusters are calculated to identifiy the outliers.
 
-## 5.2 Architecture Overview
+## 5.2 Implementation in Kafka Streams
+
+Kafka Streams offers two APIs on different levels of abstraction: The high-level DSL (Domain Specific Language) and the low-level Processor API. The DSL has a simple, functional style, however it does not offer the flexibility needed to efficiently implement the complex KELOS algorithm. As a result this project is using the more flexible Processor API that allows to manually define each step of the pipeline. 
+
+Each pipeline starts with at least one Source, a Kafka topic that is consumed by the application and ends in at least one Sink, another Kafka topic that is being written to by the application. There may be multiple Sources and Sinks in complex pipelines. The actual processing of the data is done by Processors, nodes that are responsible for one step in the computation. The topology is defined as a Graph, where each Processor receives data from a Source or a previous Processor and forwards its results to another Processor or a Sink. The processors may access State Stores for their computations, allowing for stateful processing.
+
+While more flexible that the DSL, the Processor API processes each point one by one, making windowing difficult to implement. We approached this problem by inserting the points into State Stores at first, to then do the actual computations in a callback method that is scheduled to run after the end of the window. This approach had the drawback that the order in which the callbacks are executed is not fixed, so if later parts of the pipeline are executed before earlier ones the computation will not proceed as expected. To mitigate this issue we only use this method in the very first Processor and then trigger computations in the rest of the pipeline by manually passing a token that indicates the end of the window. This solution works, but feels very complicated. It is entirely possible that there are better options and we simply failed to find them but if not, Kafka Streams may not be ideal for this kind of complex windowed algorithm.
+
+## 5.3 Architecture Overview
 
 We stuctured our implementation following the same schema as [4] in their publication (see Figure 1). Our streaming pipeline start withs a producer reading in a dataset from some CSV file. The data abstractor module then clusters these input datapoints, producing two topics: The resulting clusters and the assignments of data points to these clusters. The density estimator computes the densities for the clusters and forwards them to the outlier detector which emits the outlier points at the end.
 
@@ -38,7 +46,7 @@ We stuctured our implementation following the same schema as [4] in their public
 *Figure 1: Architecture Overview*
 
 
-## 5.3 Data Abstractor
+## 5.4 Data Abstractor
 
 KELOS uses a micro-clustering approach, where newly arriving data points are simply added to the nearest existing cluster if the distance is smaller than a certain threshold. Otherwise a new cluster with that point will be created. 
 
@@ -56,7 +64,7 @@ Kafka streams does not provide nested window functionality. To adapt this window
 
 The clusters get serialized into the Kafka topics as objects of the Java class "Cluster". The class acts as a data container for all cluster metrics (cardinality, minima etc.) and their density scores later on.
 
-## 5.4 Density Estimator
+## 5.5 Density Estimator
 
 In the next step the densities at the cluster centroids get calculated. The density estimator first computes the k nearest neighbor clusters for each cluster in the current window. The next processor then calculates the density measure using a gaussian kernel for each dimension (see Formula 1). The parameter *u* of the function is the distance per dimension between the cluster's centroid and the centroid of a neighbor cluster. The kernel for each neighbor then gets weighted by the neighbor cluster's cardinality.
 
@@ -70,7 +78,7 @@ In addition to the density estimate for the cluster, the processor also computes
 
 In summary, the density estimator takes the clusters as input and outputs the clusters with the estimated density, as well as the the lower and upper density bounds (see Figure 4).
 
-## 5.5 Outlier Detector
+## 5.6 Outlier Detector
 
 The outlier detector takes the results of the previous steps and uses them to compute the top N outliers within the current window. First the PruningProcessor discards all clusters that can't possibly contain an outlier. This is done by first computing an outlier score (called KLOME score) for each cluster based on the densities calculated in the density estimator. This score compares the cluster's density with the density of its neighbors. If a cluster has a low KLOME score, it is likely to be an outlier. With the upper and lower density bounds similar bounds are computed for the KLOME score. Using these bounds, some clusters can be discarded, while others are forwarded to the FilterProcessor. This is done by ignoring all clusters whose lower KLOME score bound is greater than the upper bounds of at least N other clusters. If this is the case, we can say with certainty that the cluster at hand cannot contain outliers as we're only looking for the top-N outliers.
 
