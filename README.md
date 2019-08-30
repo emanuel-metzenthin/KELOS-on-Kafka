@@ -175,6 +175,10 @@ As figure 10 shows, the *P@|O|* rises quickly as k increases to 50, then shows l
 
 # 7 Conclusion and future work
 
+In this project we implemented the KELOS algorithm for outlier detection in windowed streams using the Kafka Streams library. To do so, we used Kafka Streams low-level Processor API, resulting in an architecture that splits the tasks into different processor nodes. This goal was achieved as the evaluation shows results that are very similar to those of the original implementation. However, unless there are additional options that we overlooked, Kafka Streams does not seem to be ideal for this task as we struggled to implement the windowing.
+
+The most obvious area for future improvements is the performance of the implementation. Though our results are not directly comparable to those in the base paper because of different hardware and different measured variables, it is clear that our implementation is slower. Reaching the performance of a purpose-built implementation with standard libraries may not be possible, but there is still room for improvement. One area where improvements could be made is the computation of the k-nearest neighbors. The current implementation uses the naive approach with quadratic runtime, but using data structures such as k-d trees could be significantly faster. Even larger gains could be made by leveraging data parallelism by modifying the code so that multiple instances of the same processor can run in parallel and work on different parts of the data.
+
 # References
 
 [1] Markus M. Breunig, Hans-Peter Kriegel, Raymond T. Ng, and Jörg Sander. 2000. LOF: Identifying Density-based Local Outliers. In SIGMOD. 93–104.
