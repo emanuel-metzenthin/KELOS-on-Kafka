@@ -20,6 +20,7 @@ kelos_start = 0
 kelos_end = n
 
 while window_end < len(data):
+	# We don't have actual ground truth labels for this, so to at least get an idea of our performance we compare to LOF
 	contamination = n / (window_end - window_start)
 	clf = LocalOutlierFactor(n_neighbors=200, contamination=contamination)
 	outliers = clf.fit_predict(data[window_start:window_end])
@@ -35,4 +36,4 @@ while window_end < len(data):
 	kelos_start = kelos_end
 	kelos_end += n
 
-print(f'P@|O|: {in_common / kelos_start}')
+print(f'Similarity to LOF: {in_common / kelos_start}')
