@@ -147,6 +147,7 @@ For evaluating the effectiveness of our implementation, we compare our results t
 The benchmarked metric is the *Precision@|O|* that was also used in the base paper [4]. It is calculated by dividing the total number of correctly identified outliers over all windows through the number of ground truth outliers present in them (see formula 1). Assuming there are *|O|<sub>i</sub>* ground truth outliers in the i-th window, only those that are among the top-*|O|<sub>i</sub>* points with the lowest KLOME score in the window are considered to be correctly identified. Since we work with sliding windows, outliers will be counted multiple times.
 
 ![Formula 1: P@|O| calculation](./figures/precision_at_o.png)
+
 *Formula 1: P@|O| calculation [4]*
 
 # 7 Conclusion and future work
