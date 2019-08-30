@@ -7,10 +7,10 @@ KELOS (Scalable Kernel Density Estimation-based Local Outlier Detection over Lar
 
 - Download [`docker-compose.yml`](./docker-compose.yml)
 - ```docker-compose up -d``` to start Kafka broker
-- Specify the source dataset in the [`Input Producer`](./InputProducer.java)
-- Specify parameter `K`, `N`, `AGGREGATION_WINDOWS` in the [`main class`](Main.java) and `ELEMENTS_PER_WINDOW` in the [`Input Producer`](./InputProducer.java)
-- Start `InputProducer` to load the data and `Main.java`
-- Optional: Start the Consumers and ```python visualize_outliers.py``` to visualize the result
+- Specify the source dataset in the [`Input Producer`](./src/main/java/KELOS/InputProducer.java)
+- Specify parameters `K`, `N`, `AGGREGATION_WINDOWS` in the [`main class`](./src/main/java/KELOS/Main.java) and `ELEMENTS_PER_WINDOW` in the [`Input Producer`](./src/main/java/KELOS/InputProducer.java)
+- Start `InputProducer.jar` to load the data and `Main.jar` using ```java -jar <filename>``` (jars in [/lib](./lib/))
+- Optional: Start the Consumers (`AssignmentConsumer.jar`, `CandidateConsumer.jar`, `OutlierConsumer.jar`) and run ```python visualize_outliers.py``` to visualize the result
 
 # 3 Motivation
 
