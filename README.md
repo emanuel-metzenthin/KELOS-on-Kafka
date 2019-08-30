@@ -49,7 +49,7 @@ While more flexible that the DSL, the Processor API processes each point one by 
 
 ## 5.3 Architecture Overview
 
-We stuctured our implementation following the same schema as [4] in their publication (see Figure 1). Our streaming pipeline start withs a producer reading in a dataset from some CSV file. The data abstractor module then clusters these input datapoints, producing two topics: The resulting clusters and the assignments of data points to these clusters. The density estimator computes the densities for the clusters and forwards them to the outlier detector which emits the outlier points at the end.
+We stuctured our implementation following the same schema as [4] in their publication (see Figure 1). Our streaming pipeline start with a producer reading in a dataset from some CSV file. The data abstractor module then clusters these input datapoints, producing two topics: The resulting clusters and the assignments of data points to these clusters. The density estimator computes the densities for the clusters and forwards them to the outlier detector which emits the outlier points at the end.
 
 ![Figure 1: Architecture Overview](./figures/architecture-overview.png)
 *Figure 1: Architecture Overview*
