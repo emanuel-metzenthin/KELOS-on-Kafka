@@ -169,7 +169,7 @@ The benchmarked metric is the *Precision@|O|* that was also used in the base pap
 
 The evaluation was done with a clustering threshold of 0.095 and a window size of 6000 points as the original paper found those to be the ideal values for the dataset. The slide size was set to 2000 points, while k was varied between 5 and 100. 
 
-![Figure 10: P@|O| for different k on HTTP dataset](./figures/evaluation.png)
+![Figure 10: P@|O| for different k on HTTP dataset](./figures/precision_evaluation.png)
 
 *Figure 10: P@|O| for different k on HTTP dataset*
 
