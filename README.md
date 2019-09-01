@@ -7,12 +7,17 @@ The KELOS algorithm is an efficient approach to outlier detection in windowed st
 
 # 2 Installation instructions
 
-- Download [`docker-compose.yml`](./docker-compose.yml)
+- Clone the repository
 - ```docker-compose up -d``` to start Kafka broker
 - Specify the source dataset in the [`Input Producer`](./src/main/java/KELOS/InputProducer.java)
 - Specify parameters `K`, `N`, `AGGREGATION_WINDOWS` in the [`main class`](./src/main/java/KELOS/Main.java) and `ELEMENTS_PER_WINDOW` in the [`Input Producer`](./src/main/java/KELOS/InputProducer.java)
-- Start `InputProducer.jar` to load the data and `Main.jar` using ```java -jar <filename>``` (jars in [/lib](./lib/))
-- Optional: Start the Consumers (`AssignmentConsumer.jar`, `CandidateConsumer.jar`, `OutlierConsumer.jar`) and run ```python visualize_outliers.py``` to visualize the result
+- Build the project with ```mvn clean compile assembly:single```
+- Copy the dataset into the `target` folder
+- Optional: Create empty CSV files in the `target` folder for the consumers you want to start (the names can be seen in the code, e.g. `outliers.csv` for the [`OutlierConsumer`](./src/main/java/KELOS/OutlierConsumer.java))
+- Start the [`Input Producer`](./src/main/java/KELOS/InputProducer.java) with ```java -cp kelos-on-kafka-1.0.jar KELOS.InputProducer```
+- Optional: Start the consumers you want to start with ```java -cp kelos-on-kafka-1.0.jar KELOS.<classname>```
+- Start the [`main application`](./src/main/java/KELOS/Main.java) with ```java -cp kelos-on-kafka-1.0.jar KELOS.Main```
+- Optional: If the data is 2D and you have kept track of candidates and outliers using their respective consumers, you may display them using [`visualize_outliers.py`](./visualize_outliers.py) after editing the filename it reads the data from
 
 # 3 Motivation
 
