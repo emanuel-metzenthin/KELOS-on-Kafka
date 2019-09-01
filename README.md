@@ -3,7 +3,7 @@ KELOS (Scalable Kernel Density Estimation-based Local Outlier Detection over Lar
 
 # 1 Abstract
 
-The KELOS algorithm is an efficient approach to outlier detection in windowed streams, however the code used in the paper introducing it is not public. Implementing it in a widely used library such as Kafka Streams is a first step towards practical adoption of this algorithm. This repository contains such an implementation that makes use of Kafka Streams' low-level Processor API. It is shown to achieve a precision similar to that of the original implementation, however the performance is worse, making this a topic for future improvements.
+The KELOS algorithm is an efficient approach to outlier detection in windowed streams, however the implementation used in the paper introducing it is not public. Implementing it in a widely used library such as Kafka Streams is a first step towards practical adoption of this algorithm. This repository contains such an implementation that makes use of Kafka Streams' low-level Processor API. It is shown to achieve a precision similar to that of the original implementation, however the performance is worse, making this a topic for future improvements.
 
 # 2 Installation instructions
 
