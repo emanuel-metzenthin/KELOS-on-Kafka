@@ -173,7 +173,7 @@ The evaluation was done with a clustering threshold of 0.095 and a window size o
 
 *Figure 10: P@|O| for different k on HTTP dataset*
 
-As figure 10 shows, the *P@|O|* rises quickly as k increases to 50, then shows little change past that point. These results are in line with those reported in the base paper, confirming that our implementation of the KELOS-algorithm is correct.
+As figure 10 shows, the *P@|O|* rises quickly as k increases to 50, reaches its maximum around 100 and then starts to fall of again. These results are in line with those reported in the base paper, confirming that our implementation of the KELOS-algorithm is correct.
 
 # 7 Conclusion and future work
 
