@@ -162,6 +162,13 @@ Furthermore our experiments show that the runtime per window scales linearly wit
 ![Figure 9: Comparison of number of elements per window](./figures/elements-per-window.png)
 *Figure 9: Comparison of number of elements per window*
 
+If you attended our last presentation on this project you may notice that these results differ from those we presented there. This is due to two reasons:
+
+1. We discovered that we did not measure the runtime of the clustering correctly during our first run of benchmarks. As you can see the revised results show a much higher runtime.
+
+2. We first misunderstood the calculation of the KLOME scores for the individual points (in the KNNPointsProcessor and afterwards). We initially believed that the KNN computation was supposed to find the K nearest points, but in fact it only needs to find the K clusters that are closest to the candidate. As there are way less clusters than points the KNNPointsProcessor is now much faster than before the changes.
+
+
 ## 6.2 Effectiveness Evaluation
 
 For evaluating the effectiveness of our implementation, we compare our results to those in the paper. In the original publication, the alorithm was tested on three real-world datasets. Unfortunately, we were unable to obtain the Yahoo! A1 and Yahoo! A2 datasets [9] because the registration necessary to access them did not work on multiple separate attempts. The last dataset is from KDD99 [10] but mismatches in the number of records indicate that not the entire dataset was used. The paper itself does not mention this, however we believe that the dataset was preprocessed as described in [11], because the number of records reported there matches those in the base paper. The transformed dataset can be downloaded [here](http://odds.cs.stonybrook.edu/http-kddcup99-dataset/) (in Matlab format).
