@@ -94,13 +94,14 @@ In summary, the density estimator takes the clusters as input and outputs the cl
 
 ## 5.6 Outlier Detector
 
-The outlier detector takes the results of the previous steps and uses them to compute the top N outliers within the current window. First the PruningProcessor discards all clusters that can't possibly contain an outlier. This is done by first computing an outlier score (called KLOME score) for each cluster based on the densities calculated in the density estimator. This score compares the cluster's density with the density of its neighbors. If a cluster has a low KLOME score, it is likely to be an outlier. With the upper and lower density bounds similar bounds are computed for the KLOME score. Using these bounds, some clusters can be discarded, while others are forwarded to the FilterProcessor. This is done by ignoring all clusters whose lower KLOME score bound is greater than the upper bounds of at least N other clusters. If this is the case, we can say with certainty that the cluster at hand cannot contain outliers as we're only looking for the top-N outliers.
+The outlier detector takes the results of the previous steps and uses them to compute the top N outliers within the current window. First the PruningProcessor discards all clusters that can't possibly contain an outlier. This is done by first computing an outlier score (called KLOME score) for each cluster based on the densities calculated in the density estimator. This score compares the cluster's density with the density of its neighbors. If a cluster has a low KLOME score, it is likely to be an outlier. With the upper and lower density bounds similar bounds are computed for the KLOME score. Using these bounds, we can identify clusters that do not contain outliers by checking if there are other clusters with a total cardinality of at least N that have an upper bound that is smaller than the clusters lower bound. If this is the case, we can say with certainty that the cluster at hand cannot contain outliers as we're only looking for the top-N outliers.
 
 This process is described in detail in the KELOS publication [4]. The paper also contains a pseudo-code listing (see Algorithm 1 in [4, p. 6]) supposedly implementing the same pruning approach. However we found a discrepancy between the textual description and the pseudo-code, which does not seem to implement the discussed approach. We therefore chose to implement the pruning as introduced in the publication's text.
 
-The pruning algorithm works as follows. For each cluster we keep track of how many other clusters have a smaller upper KLOME bound than the lower bound of the cluster we are looking at. We then only forward the clusters where less then N other clusters meet this condition. Figure 5 shows the implementation.
+The pruning algorithm works as follows. For each cluster we keep track of how many points are in clusters that have a smaller upper KLOME bound than the lower bound of the cluster we are looking at. We then only forward the clusters where less then N points meet this condition. Figure 5 shows the implementation.
 
 ```java
+// Keep track for each cluster of how many points are in clusters with lower KLOME upper bounds
 int[] smallerKlomeCounts = new int[clustersWithKlome.size()];
 
 for (int i = 0; i < clustersWithKlome.size(); i++) {
@@ -119,19 +120,18 @@ for (int i = 0; i < clustersWithKlome.size(); i++) {
 for (int i = 0; i < smallerKlomeCounts.length; i++) {
     int cluster = clustersWithKlome.get(i).getLeft();
 
-    if (smallerKlomeCounts[i] < N) {
-        // Indicate the cluster may contain outliers
+    boolean might_contain_outliers = smallerKlomeCounts[i] < N;
 
-        Pair<Cluster, Boolean> pair = Pair.of(this.clusterWithDensities.get(cluster), true);
-        this.context.forward(cluster, pair);
-    }
+    Pair<Cluster, Boolean> pair = Pair.of(this.clusterWithDensities.get(cluster), might_contain_outliers);
+    this.context.forward(cluster, pair);
+}
     
 ...
 
 ```
 *Figure 5: Pruning Algorithm*
 
-Here, all points that lie within clusters that are not pruned get tagged as all points are forwarded to the next processor. These points are the outlier candidates, the points that might be in the top N outliers. The remaining three processors then compute the KLOME scores of these candidates in a very similar manner as they were calculated for the clusters earlier (see figure 6). At the end of the pipeline, the PointPruningProcessor identifies the top N outliers amongst the candidates and thus the entire window.
+In the FilterProcessor, all points that lie within clusters that do not contain outliers are pruned, while the remaining points are forwarded to the next processor. These points are the outlier candidates, the points that might be in the top N outliers. The remaining three processors then compute the KLOME scores of these candidates in a very similar manner as they were calculated for the clusters earlier (see figure 6). At the end of the pipeline, the PointPruningProcessor identifies the top N outliers amongst the candidates and thus the entire window.
 
 ![Figure 6: Outlier detector](./figures/outlier-detector.png)
 *Figure 6: Outlier detector*
