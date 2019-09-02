@@ -6,7 +6,7 @@
 
     <groupId>msd</groupId>
     <artifactId>kelos-on-kafka</artifactId>
-    <version>1.0-SNAPSHOT</version>
+    <version>1.0</version>
     <build>
         <pluginManagement>
             <plugins>
@@ -39,9 +39,6 @@
                             <mainClass>KELOS.Main</mainClass>
                         </manifest>
                     </archive>
-                    <descriptorRefs>
-                        <descriptorRef>jar-with-dependencies</descriptorRef>
-                    </descriptorRefs>
                 </configuration>
             </plugin>
         </plugins>

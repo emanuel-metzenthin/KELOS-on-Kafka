@@ -88,19 +88,11 @@ public class PruningProcessorSupplier implements ProcessorSupplier<Integer, Clus
                     // Determine whether the clusters might contain outliers
                     for (int i = 0; i < smallerKlomeCounts.length; i++) {
                         int cluster = clustersWithKlome.get(i).getLeft();
+                        
+                        boolean might_contain_outliers = smallerKlomeCounts[i] < N;
 
-                        if (smallerKlomeCounts[i] < N) {
-                            // Indicate the cluster may contain outliers
-
-                            Pair<Cluster, Boolean> pair = Pair.of(this.clusterWithDensities.get(cluster), true);
-                            this.context.forward(cluster, pair);
-                        }
-                        else{
-                            // Indicate the cluster does not contain outliers
-
-                            Pair<Cluster, Boolean> pair = Pair.of(this.clusterWithDensities.get(cluster), false);
-                            this.context.forward(cluster, pair);
-                        }
+                        Pair<Cluster, Boolean> pair = Pair.of(this.clusterWithDensities.get(cluster), might_contain_outliers);
+                        this.context.forward(cluster, pair);
                     }
 
                     this.context.forward(key, Pair.of(value, false));
