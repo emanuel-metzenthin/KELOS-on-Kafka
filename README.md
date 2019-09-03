@@ -21,13 +21,13 @@ The KELOS algorithm is an efficient approach to outlier detection in windowed st
 
 # 3 Motivation
 
-Techniques for outlier detection are applicable to and needed for a variety of domains, ranging from financial fraud detection to network security [4]. The goal is to identify data points which are very different from the rest of the dataset. In the case of credit card fraud this could be card transactions accuring in a particularly high frequency or unusual location. The concept of *local* outliers works with the assumption that most datasets in the real-world are skewed and that their data points thus have varying distribution properties [1]. Therefore a point is considered an outlier only if the density at that spot is considerably lower than at the surrounding points, rather than taking the global dataset density into account. 
+Techniques for outlier detection are applicable to and needed for a variety of domains, ranging from financial fraud detection to network security [4]. The goal is to identify data points which are very different from the rest of the dataset. In the case of credit card fraud this could be card transactions occurring in a particularly high frequency or unusual location. The concept of *local* outliers works with the assumption that most datasets in the real-world are skewed and that their data points thus have varying distribution properties [1]. Therefore, a point is considered an outlier only if the density at that spot is considerably lower than at the surrounding points, rather than taking the global dataset density into account. 
 
-Due to an increase in the data sizes and sources we have to deal with nowadays, algorithms that work on data streams instead of whole datasets are in high demand. There exist a few approaches to do outlier detection using data streaming [2][3][4]. The KELOS algorithm [4] is an efficient and scalable solution to the problem. However, there is no publicly available implementation of this algorithm in a broadly adopted streaming framework, making it hard to deploy the algorithm in a real-world scenario. To remove this obstacle we chose to implement KELOS using Kafka Streams, a stream-processing library that is closely integrated with the popular Kafka message broker.
+Due to an increase in the data sizes and sources we have to deal with nowadays, algorithms that work on data streams instead of whole datasets are in high demand. There exist a few approaches to do outlier detection using data streaming [2][3][4]. The KELOS algorithm [4] is an efficient and scalable solution to the problem. However, there is no publicly available implementation of this algorithm in a broadly adopted streaming framework, making it hard to deploy the algorithm in a real-world scenario. To remove this obstacle, we chose to implement KELOS using Kafka Streams, a stream-processing library that is closely integrated with the popular Kafka message broker.
 
 # 4 Related work
 
-The concept of local outliers was first brought up by Breunig et al. in [1]. They were detected by computing the so called *local outlier factor* (LOF), a metric that measures the k-nearest neighbor distance of a point relative to the k-nearest neighbor distance of the points k-nearest neighbors. Though originally a batch computation, it has since been adapted to the streaming case by computing the LOF in an incremental way [2]. This was further improved upon with MiLOF [3], an algorithm that reduces the memory usage and time complexity of the outlier detection.
+The concept of local outliers was first brought up by Breunig et al. in [1]. They were detected by computing the so-called *local outlier factor* (LOF), a metric that measures the k-nearest neighbor distance of a point relative to the k-nearest neighbor distance of the points k-nearest neighbors. Though originally a batch computation, it has since been adapted to the streaming case by computing the LOF in an incremental way [2]. This was further improved upon with MiLOF [3], an algorithm that reduces the memory usage and time complexity of the outlier detection.
 
 All these algorithms use the local outlier factor for ranking the outliers, but there are other approaches as well. One of them is kernel density estimation (KDE), a statistical technique for estimating probability density functions. It was first used for outlier detection in [5] then improved upon in [6]. The KELOS algorithm [4] implemented in this repository is the first to adapt KDE-based outlier detection to the streaming scenario.
 
@@ -40,21 +40,21 @@ There are also other notions of outliers besides the local density approach. One
 The KELOS algorithm [4] computes the Top-N outliers per sliding stream window. It works using Kernel Density Estimators, leveraging the statistical properties of the dataset to compute the density at a specific point.
 The key difference to other local outlier detection algorithms is the introduction of abstract kernel centers. This innovation is based on the observation that all points in a cluster have a similar density and affect the density of points in other clusters in a similar way. Before doing the density calculation, the data points are clustered. Then the density measure is only computed for these clusters at first.
 
-A kernel function, typically a gaussian probability density function, is used in order to get the density. Each cluster is weighted proportionally to the number of points it contains. For efficiency the density is computed heuristically per dimension and then multiplied rather then using euclidean distances.
+A kernel function, typically a gaussian probability density function, is used in order to get the density. Each cluster is weighted proportionally to the number of points it contains. For efficiency the density is computed heuristically per dimension and then multiplied rather than using euclidean distances.
 
-Then an outlier score (KLOME score) gets computed and lower and upper bounds of that score determined for each cluster. Based on these bounds the clusters that will definitely not contain outliers get pruned. Finally the KLOME scores for all points in the remaining clusters are calculated to identifiy the outliers.
+Then an outlier score (KLOME score) gets computed and lower and upper bounds of that score determined for each cluster. Based on these bounds the clusters that will definitely not contain outliers get pruned. Finally, the KLOME scores for all points in the remaining clusters are calculated to identify the outliers.
 
 ## 5.2 Implementation in Kafka Streams
 
-Kafka Streams offers two APIs on different levels of abstraction: The high-level DSL (Domain Specific Language) and the low-level Processor API. The DSL has a simple, functional style, however it does not offer the flexibility needed to efficiently implement the complex KELOS algorithm. As a result this project is using the more flexible Processor API that allows to manually define each step of the pipeline. 
+Kafka Streams offers two APIs on different levels of abstraction: The high-level DSL (Domain Specific Language) and the low-level Processor API. The DSL has a simple, functional style however, it does not offer the flexibility needed to efficiently implement the complex KELOS algorithm. As a result, this project is using the more flexible Processor API that allows to manually define each step of the pipeline. 
 
 Each pipeline starts with at least one Source, a Kafka topic that is consumed by the application and ends in at least one Sink, another Kafka topic that is being written to by the application. There may be multiple Sources and Sinks in complex pipelines. The actual processing of the data is done by Processors, nodes that are responsible for one step in the computation. The topology is defined as a Graph, where each Processor receives data from a Source or a previous Processor and forwards its results to another Processor or a Sink. The processors may access State Stores for their computations, allowing for stateful processing.
 
-While more flexible that the DSL, the Processor API processes each point one by one, making windowing difficult to implement. We approached this problem by inserting the points into State Stores at first, to then do the actual computations in a callback method that is scheduled to run after the end of the window. This approach had the drawback that the order in which the callbacks are executed is not fixed, so if later parts of the pipeline are executed before earlier ones the computation will not proceed as expected. To mitigate this issue we only use this method in the very first Processor and then trigger computations in the rest of the pipeline by manually passing a token that indicates the end of the window. This solution works, but feels very complicated. It is entirely possible that there are better options and we simply failed to find them but if not, Kafka Streams may not be ideal for this kind of complex windowed algorithm.
+While more flexible that the DSL, the Processor API processes each point one by one, making windowing difficult to implement. We approached this problem by inserting the points into State Stores at first, to then do the actual computations in a callback method that is scheduled to run after the end of the window. This approach had the drawback that the order in which the callbacks are executed is not fixed, so if later parts of the pipeline are executed before earlier ones the computation will not proceed as expected. To mitigate this issue, we only use this method in the very first Processor and then trigger computations in the rest of the pipeline by manually passing a token that indicates the end of the window. This solution works but feels very complicated. It is entirely possible that there are better options and we simply failed to find them but if not, Kafka Streams may not be ideal for this kind of complex windowed algorithm.
 
 ## 5.3 Architecture Overview
 
-We stuctured our implementation following the same schema as [4] in their publication (see Figure 1). Our streaming pipeline start with a producer reading in a dataset from some CSV file. The data abstractor module then clusters these input datapoints, producing two topics: The resulting clusters and the assignments of data points to these clusters. The density estimator computes the densities for the clusters and forwards them to the outlier detector which emits the outlier points at the end.
+We structured our implementation following the same schema as [4] in their publication (see Figure 1). Our streaming pipeline start with a producer reading in a dataset from some CSV file. The data abstractor module then clusters these input datapoints, producing two topics: The resulting clusters and the assignments of data points to these clusters. The density estimator computes the densities for the clusters and forwards them to the outlier detector which emits the outlier points at the end.
 
 ![Figure 1: Architecture Overview](./figures/architecture-overview.png)
 *Figure 1: Architecture Overview*
@@ -64,14 +64,14 @@ We stuctured our implementation following the same schema as [4] in their public
 
 KELOS uses a micro-clustering approach, where newly arriving data points are simply added to the nearest existing cluster if the distance is smaller than a certain threshold. Otherwise a new cluster with that point will be created. 
 
-For the density kernel a few statistical properties of the clusters have to be stored. These are the *cardinality*, *linear sum* of points per dimension and the *minimum* and *maximum* values per dimension. As these values have additive properties and the kernel is computed per dimension a sliding window semantic can be achieved in the following way:
+For the density kernel a few statistical properties of the clusters must be stored. These are the *cardinality*, *linear sum* of points per dimension and the *minimum* and *maximum* values per dimension. As these values have additive properties and the kernel is computed per dimension a sliding window semantic can be achieved in the following way:
 
 The whole window gets split into several sub-windows, so called panes, the size of the window step size. The cluster metrics then only have to be computed at each step for the new pane. The oldest pane can merely expire and the metrics of the panes in between are kept and merged with the new pane. Figure 2 shows this process.
 
 ![Figure 2: Sliding window semantics](./figures/sliding-window-semantic.png)
 *Figure 2: Sliding window semantics [4]*
 
-Kafka streams does not provide nested window functionality. To adapt this windowing technique we therefore set the window time our Kafka application to the pane size. The clustering is then performed in two Processors (see Figure 3). The first (ClusteringProcessor) clusters the points in each new window pane and forwards the clusters and their metrics for that pane. The second (AggregationProcessor) then receives one message per window pane containing the current cluster metrics. For every new pane arriving it deletes the oldest and merges the last panes with the new one. The forwarded clusters are then the ones for the complete sliding window ending at the current timestamp.
+Kafka streams does not provide nested window functionality. To adapt this windowing technique, we therefore set the window time our Kafka application to the pane size. The clustering is then performed in two Processors (see Figure 3). The first (ClusteringProcessor) clusters the points in each new window pane and forwards the clusters and their metrics for that pane. The second (AggregationProcessor) then receives one message per window pane containing the current cluster metrics. For every new pane arriving it deletes the oldest and merges the last panes with the new one. The forwarded clusters are then the ones for the complete sliding window ending at the current timestamp.
 
 ![Figure 3: Data Abstractor](./figures/data-abstractor.png)
 *Figure 3: Data Abstractor*
@@ -90,13 +90,13 @@ In addition to the density estimate for the cluster, the processor also computes
 ![Figure 4: Density Estimator](./figures/density-estimator.png)
 *Figure 4: Density Estimator*
 
-In summary, the density estimator takes the clusters as input and outputs the clusters with the estimated density, as well as the the lower and upper density bounds (see Figure 4).
+In summary, the density estimator takes the clusters as input and outputs the clusters with the estimated density, as well as the lower and upper density bounds (see Figure 4).
 
 ## 5.6 Outlier Detector
 
 The outlier detector takes the results of the previous steps and uses them to compute the top N outliers within the current window. First the PruningProcessor discards all clusters that can't possibly contain an outlier. This is done by first computing an outlier score (called KLOME score) for each cluster based on the densities calculated in the density estimator. This score compares the cluster's density with the density of its neighbors. If a cluster has a low KLOME score, it is likely to be an outlier. With the upper and lower density bounds similar bounds are computed for the KLOME score. Using these bounds, we can identify clusters that do not contain outliers by checking if there are other clusters with a total cardinality of at least N that have an upper bound that is smaller than the clusters lower bound. If this is the case, we can say with certainty that the cluster at hand cannot contain outliers as we're only looking for the top-N outliers.
 
-This process is described in detail in the KELOS publication [4]. The paper also contains a pseudo-code listing (see Algorithm 1 in [4, p. 6]) supposedly implementing the same pruning approach. However we found a discrepancy between the textual description and the pseudo-code, which does not seem to implement the discussed approach. We therefore chose to implement the pruning as introduced in the publication's text.
+This process is described in detail in the KELOS publication [4]. The paper also contains a pseudo-code listing (see Algorithm 1 in [4, p. 6]) supposedly implementing the same pruning approach. However, we found a discrepancy between the textual description and the pseudo-code, which does not seem to implement the discussed approach. We therefore chose to implement the pruning as introduced in the publication's text.
 
 The pruning algorithm works as follows. For each cluster we keep track of how many points are in clusters that have a smaller upper KLOME bound than the lower bound of the cluster we are looking at. We then only forward the clusters where less then N points meet this condition. Figure 5 shows the implementation.
 
@@ -140,7 +140,7 @@ In the FilterProcessor, all points that lie within clusters that do not contain 
 
 ## 6.1 Performance Benchmark
 
-For analyzing the performance of the application we used a synthetic three-dimensional dataset consisting of 3.000 data points.
+For analyzing the performance of the application, we used a synthetic three-dimensional dataset consisting of 3.000 data points.
 We measured the average window processing time, i.e. per application window or sub-window pane, for every processor. The experiments were executed on a MacBook Pro (6x Intel Core i7 @ 2.2 GHz, 16GB RAM).
 
 We evaluated the influence of several hyper-parameters: K (10, 20, 30, 40), Elements per window (100, 500, 1000) and Number of sub-window panes (2, 5, 10).
@@ -157,7 +157,7 @@ The number of neighbors has a linear influence on the processing speed (see figu
 ![Figure 8: Comparison of number of neighbors](./figures/k-comparison.png)
 *Figure 8: Comparison of number of neighbors*
 
-Furthermore our experiments show that the runtime per window scales linearly with the number of data points per window (see figure 9).
+Furthermore, our experiments show that the runtime per window scales linearly with the number of data points per window (see figure 9).
 
 ![Figure 9: Comparison of number of elements per window](./figures/elements-per-window.png)
 *Figure 9: Comparison of number of elements per window*
@@ -171,7 +171,7 @@ If you attended our last presentation on this project you may notice that these 
 
 ## 6.2 Effectiveness Evaluation
 
-For evaluating the effectiveness of our implementation, we compare our results to those in the paper. In the original publication, the alorithm was tested on three real-world datasets. Unfortunately, we were unable to obtain the Yahoo! A1 and Yahoo! A2 datasets [9] because the registration necessary to access them did not work on multiple separate attempts. The last dataset is from KDD99 [10] but mismatches in the number of records indicate that not the entire dataset was used. The paper itself does not mention this, however we believe that the dataset was preprocessed as described in [11], because the number of records reported there matches those in the base paper. The transformed dataset can be downloaded [here](http://odds.cs.stonybrook.edu/http-kddcup99-dataset/) (in Matlab format).
+For evaluating the effectiveness of our implementation, we compare our results to those in the paper. In the original publication, the algorithm was tested on three real-world datasets. Unfortunately, we were unable to obtain the Yahoo! A1 and Yahoo! A2 datasets [9] because the registration necessary to access them did not work on multiple separate attempts. The last dataset is from KDD99 [10] but mismatches in the number of records indicate that not the entire dataset was used. The paper itself does not mention this, however we believe that the dataset was preprocessed as described in [11], because the number of records reported there matches those in the base paper. The transformed dataset was taken from [here](http://odds.cs.stonybrook.edu/http-kddcup99-dataset/).
 
 The benchmarked metric is the *Precision@|O|* that was also used in the base paper [4]. It is calculated by dividing the total number of correctly identified outliers over all windows through the number of ground truth outliers present in them (see formula 1). Assuming there are *|O|<sub>i</sub>* ground truth outliers in the i-th window, only those that are among the top-*|O|<sub>i</sub>* points with the lowest KLOME score in the window are considered to be correctly identified. Since we work with sliding windows, outliers will be counted multiple times because they appear in multiple windows.
 
@@ -185,13 +185,13 @@ The evaluation was done with a clustering threshold of 0.095 and a window size o
 
 *Figure 10: P@|O| for different k on HTTP dataset*
 
-As figure 10 shows, the *P@|O|* rises quickly as k increases to 50, reaches its maximum around 100 and then starts to fall of again. These results are in line with those reported in the base paper, confirming that our implementation of the KELOS-algorithm is correct.
+As figure 10 shows, the *P@|O|* rises quickly as k increases to 50, reaches its maximum around 100 and then starts to fall off again. These results are in line with those reported in the base paper, confirming that our implementation of the KELOS-algorithm is correct.
 
 # 7 Conclusion and future work
 
 In this project we implemented the KELOS algorithm for outlier detection in windowed streams using the Kafka Streams library. To do so, we used Kafka Streams low-level Processor API, resulting in an architecture that splits the tasks into different processor nodes. This goal was achieved as the evaluation shows results that are very similar to those of the original implementation. However, unless there are additional options that we overlooked, Kafka Streams does not seem to be ideal for this task as we struggled to implement the windowing.
 
-The most obvious area for future improvements is the performance of the implementation. Though our results are not directly comparable to those in the base paper because of different hardware and different measured variables, it is clear that our implementation is slower. Reaching the performance of a purpose-built implementation with standard libraries may not be possible, but there is still room for improvement. One area where improvements could be made is the computation of the k-nearest neighbors. The current implementation uses the naive approach with quadratic runtime, but using data structures such as k-d trees could be significantly faster. Even larger gains could be made by leveraging data parallelism by modifying the code so that multiple instances of the same processor can run in parallel and work on different parts of the data.
+The most obvious area for future improvements is the performance of the implementation. Though our results are not directly comparable to those in the base paper because of different hardware and different measured variables, it is clear that our implementation is slower. Reaching the performance of a purpose-built implementation with standard libraries may not be possible, but there is still room for improvement. One area where improvements could be made is the computation of the k-nearest neighbors. The current implementation uses the naive approach with quadratic runtime but using data structures such as k-d trees could be significantly faster. Even larger gains could be made by leveraging data parallelism by modifying the code so that multiple instances of the same processor can run in parallel and work on different parts of the data.
 
 # References
 
